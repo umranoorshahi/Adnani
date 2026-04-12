@@ -6,7 +6,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 const app = express();
-const server = http.createServer(app);
+const SERVER = "https://web-production-4f16.up.railway.app";
 
 app.use(cors());
 app.use(express.json());
