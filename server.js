@@ -28,7 +28,7 @@ connectDB();
 
 // ── Create app ─────────────────────────────────────────
 const app    = express();
-const server = http.createServer(app);
+const SERVER = "https://web-production-4f16.up.railway.app";
 
 // ── Socket.IO ──────────────────────────────────────────
 const io = new Server(server, {
