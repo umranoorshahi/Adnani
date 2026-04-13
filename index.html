@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Super App</h2>
+
+<input id="post"><button onclick="addPost()">Post</button>
+<div id="posts"></div>
+
+<input id="msg"><button onclick="sendMsg()">Send</button>
+<div id="chat"></div>
+
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+const SERVER="http://localhost:5000";
+const socket=io(SERVER);
+
+async function load(){
+ const r=await fetch(SERVER+"/api/posts");
+ const d=await r.json();
+ let html="";
+ d.posts.forEach(p=>{
+  html+=`<p>${p.text}</p>
+  <input id="c_${p.id}">
+  <button onclick="comment(${p.id})">C</button>
+  ${p.comments.map(c=>"<p>"+c.text+"</p>").join("")}`;
+ });
+ document.getElementById("posts").innerHTML=html;
+}
+
+async function addPost(){
+ await fetch(SERVER+"/api/posts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:post.value})});
+}
+
+async function comment(id){
+ await fetch(SERVER+"/api/comment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postId:id,text:document.getElementById("c_"+id).value})});
+}
+
+function sendMsg(){
+ socket.emit("send_message",msg.value);
+}
+
+socket.on("new_post",load);
+socket.on("new_comment",load);
+socket.on("new_message",(m)=>{
+ chat.innerHTML+= "<p>"+m+"</p>";
+});
+
+load();
+</script>
+
+</body>
+</html>
