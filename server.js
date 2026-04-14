@@ -124,3 +124,10 @@ process.on('SIGTERM', () => {
   console.log('SIGTERM received — shutting down gracefully');
   server.close(() => process.exit(0));
 });
+// Keep-alive ping
+const https = require('https');
+setInterval(() => {
+  https.get('https://pretty-strength.onrender.com/ping', (res) => {
+    console.log('Keep-alive ping sent');
+  });
+}, 5 * 60 * 1000);
