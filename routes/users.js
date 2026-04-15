@@ -1,22 +1,34 @@
-const router  = require('express').Router();
-const { protect, adminOnly } = require('../middleware/auth');
-const { uploadSingle } = require('../middleware/upload');
-const {
-  getUsers, getMyProfile, getUser,
-  updateProfile, getPending, approveUser, getStatus
-} = require('../controllers/userController');
+// routes/users.js
+const router = require('express').Router();
+const User   = require('../models/User');
+const { authMiddleware, requireConsent, requireApproval } = require('../middleware/auth');
+router.use(authMiddleware);
 
-// ─────────────────────────────────────────────────────
-// BUG FIX 1+3: specific routes MUST come before /:id
-// otherwise /status, /pending, /profile match as :id param
-// ─────────────────────────────────────────────────────
+router.get('/', requireApproval, async (req, res) => {
+  try {
+    const users = await User.find({ deleted: false, approved: true })
+      .select('name city role isAdmin online last_seen createdAt')
+      .sort({ name: 1 });
+    res.json({ success: true, users });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-router.get('/me',            protect, getMyProfile);          // GET own profile
-router.get('/status',        protect, getStatus);             // GET online status
-router.get('/pending',       protect, adminOnly, getPending); // GET pending approvals
-router.get('/',              protect, getUsers);              // GET all/search users
-router.put('/profile',       protect, uploadSingle('profilePic', 5), updateProfile); // PUT update profile
-router.get('/:id',           protect, getUser);               // GET user by id  ← LAST
-router.put('/:id/approve',   protect, adminOnly, approveUser);// PUT approve/reject
+router.get('/pending', requireApproval, async (req, res) => {
+  try {
+    const pending = await User.find({ deleted: false, approved: false, terms_accepted: true })
+      .select('name phone city createdAt').sort({ createdAt: -1 });
+    res.json({ success: true, pending });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/:id/approve', requireApproval, async (req, res) => {
+  try {
+    // Any approved member can approve pending users
+    await User.findByIdAndUpdate(req.params.id, {
+      approved: true, approvedBy: req.user._id, approvedAt: new Date(), role: 'member'
+    });
+    res.json({ success: true, message: 'Member approved' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 module.exports = router;

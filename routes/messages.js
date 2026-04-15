@@ -1,20 +1,28 @@
+// routes/messages.js
 const router  = require('express').Router();
-const { protect } = require('../middleware/auth');
-const { uploadSingle } = require('../middleware/upload');
-const {
-  sendMessage, getMessages, getConversations,
-  deleteMessage, editMessage
-} = require('../controllers/messageController');
+const { Message } = require('../models/ContentModels');
+const { authMiddleware, requireConsent, requireApproval } = require('../middleware/auth');
+router.use(authMiddleware, requireApproval, requireConsent);
 
-// ─────────────────────────────────────────────────────
-// BUG FIX 2: /conversations MUST be before /:userId
-// otherwise Express treats "conversations" as a userId
-// ─────────────────────────────────────────────────────
+router.post('/', async (req, res) => {
+  try {
+    const { to, text, group_id, media_url, media_type } = req.body;
+    const msg = await Message.create({ from: req.user._id, to, text, group_id, media_url, media_type });
+    res.status(201).json({ success: true, message: msg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-router.get('/conversations',  protect, getConversations);                        // ← FIRST
-router.post('/send',          protect, uploadSingle('media', 20), sendMessage);  // send message
-router.get('/:userId',        protect, getMessages);                             // get chat history ← AFTER
-router.delete('/:id',         protect, deleteMessage);                           // delete message
-router.put('/:id',            protect, editMessage);                             // edit message
+router.get('/conversation/:userId', async (req, res) => {
+  try {
+    const msgs = await Message.find({
+      $or: [
+        { from: req.user._id, to: req.params.userId },
+        { from: req.params.userId, to: req.user._id }
+      ],
+      deleted: false
+    }).sort({ createdAt: 1 }).limit(100);
+    res.json({ success: true, messages: msgs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 module.exports = router;
