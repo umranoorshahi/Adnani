@@ -1252,14 +1252,14 @@ function applyLang(l){
   const ur=l==='ur';
   document.documentElement.lang=l;document.documentElement.dir=ur?'rtl':'ltr';
   document.body.classList.toggle('urdu',ur);
-  const lc=document.getElementById('lchip');if(lc)lc.textContent=ur?'English':'اردو';
-  const lab=document.getElementById('lab');if(lab)lab.textContent=ur?'🌐 View in English':'🌐 اردو میں دیکھیں';
-  const lsv=document.getElementById('lang-sv');if(lsv)lsv.textContent=ur?'اردو':'English';
-  const inp=document.getElementById('q-srch');if(inp)inp.placeholder=ur?'سورہ تلاش کریں...':'Search Surah...';
-  const mi=document.getElementById('mem-srch');if(mi)mi.placeholder=ur?'نام تلاش کریں...':'Search name, city, role...';
+  const lc=gel('lchip');if(lc)lc.textContent=ur?'English':'اردو';
+  const lab=gel('lab');if(lab)lab.textContent=ur?'🌐 View in English':'🌐 اردو میں دیکھیں';
+  const lsv=gel('lang-sv');if(lsv)lsv.textContent=ur?'اردو':'English';
+  const inp=gel('q-srch');if(inp)inp.placeholder=ur?'سورہ تلاش کریں...':'Search Surah...';
+  const mi=gel('mem-srch');if(mi)mi.placeholder=ur?'نام تلاش کریں...':'Search name, city, role...';
 }
 function toggleLang(){applyLang(lang==='en'?'ur':'en');}
-function applyDark(){document.body.classList.toggle('dark',dark);const d=document.getElementById('dark-sv');if(d)d.textContent=dark?'On':'Off';}
+function applyDark(){document.body.classList.toggle('dark',dark);const d=gel('dark-sv');if(d)d.textContent=dark?'On':'Off';}
 function toggleDark(){dark=!dark;localStorage.setItem('dark',dark?'1':'0');applyDark();}
 
 // ═══════════════════════════════════
@@ -1270,31 +1270,34 @@ const sTok=v=>localStorage.setItem('tok',v);
 const gUser=()=>{try{return JSON.parse(localStorage.getItem('usr'));}catch(e){return null;}};
 const sUser=u=>{localStorage.setItem('usr',JSON.stringify(u));CU=u;};
 
-document.getElementById('ph-inp').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'');});
-document.getElementById('demo-fill-btn').addEventListener('click',()=>{document.getElementById('ph-inp').value='9415061063';showToast('Demo: 9415061063 filled — tap Send OTP');});
-document.getElementById('otp-btn').addEventListener('click',sendOTP);
-document.getElementById('ver-btn').addEventListener('click',verifyOTP);
-document.getElementById('bk-btn').addEventListener('click',()=>showAuth('ap-phone'));
-document.getElementById('sp-btn').addEventListener('click',saveProfile);
-document.getElementById('chk-btn').addEventListener('click',checkApproval);
-document.getElementById('lgout-pp').addEventListener('click',doLogout);
-document.getElementById('lab').addEventListener('click',toggleLang);
+// Safe element getter — prevents null crashes
+const gel=id=>gel(id);
+const on=(id,ev,fn)=>{const el=gel(id);if(el)el.addEventListener(ev,fn);};
+
+on('ph-inp','input',function(){this.value=this.value.replace(/\D/g,'');});
+on('otp-btn','click',sendOTP);
+on('ver-btn','click',verifyOTP);
+on('bk-btn','click',()=>showAuth('ap-phone'));
+on('sp-btn','click',saveProfile);
+on('chk-btn','click',checkApproval);
+on('lgout-pp','click',doLogout);
+on('lab','click',toggleLang);
 
 async function sendOTP(){
-  const p=document.getElementById('ph-inp').value.replace(/\D/g,'');
+  const p=gel('ph-inp').value.replace(/\D/g,'');
   if(p.length<10){showToast('Enter valid 10-digit number');return;}
   phone=p;
-  const btn=document.getElementById('otp-btn');btn.disabled=true;btn.textContent='Sending...';
+  const btn=gel('otp-btn');btn.disabled=true;btn.textContent='Sending...';
   demoOtp=String(Math.floor(100000+Math.random()*900000));
   try{const r=await fetch(SERVER+'/api/auth/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:p})});const d=await r.json();if(d.otp||d.demo_otp)demoOtp=d.otp||d.demo_otp;}catch(e){}
-  document.getElementById('demo-otp').textContent=demoOtp;
+  gel('demo-otp').textContent=demoOtp;
   showAuth('ap-otp');btn.disabled=false;btn.textContent='Send OTP →';
 }
 
 async function verifyOTP(){
-  const otp=document.getElementById('otp-inp').value.trim();
+  const otp=gel('otp-inp').value.trim();
   if(!otp){showToast('Enter OTP');return;}
-  const btn=document.getElementById('ver-btn');btn.disabled=true;btn.textContent='Verifying...';
+  const btn=gel('ver-btn');btn.disabled=true;btn.textContent='Verifying...';
   if(isAdminPhone(phone)){
     sTok('admin-'+Date.now());
     const saved=gUser();
@@ -1309,7 +1312,7 @@ async function verifyOTP(){
 }
 
 async function saveProfile(){
-  const name=document.getElementById('sn-inp').value.trim(),city=document.getElementById('sc-inp').value.trim();
+  const name=gel('sn-inp').value.trim(),city=gel('sc-inp').value.trim();
   if(!name||!city){showToast('Name and city required');return;}
   const adm=isAdminPhone(phone);
   try{const r=await fetch(SERVER+'/api/auth/profile',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({name,city,phone})});const d=await r.json();sUser({...CU,name,city,approved:adm?true:(d.approved||false),isAdmin:adm,role:adm?'admin':(d.role||'user')});}
@@ -1318,28 +1321,28 @@ async function saveProfile(){
 }
 
 function handleUser(u){if(isAdminPhone(u.phone||phone)){sUser({...u,approved:true,isAdmin:true,role:'admin'});launchApp();return;}if(!u.name||!u.city){showAuth('ap-prof');return;}if(!u.approved){showPending();return;}launchApp();}
-function showPending(){hideAllAuth();document.getElementById('pp').classList.add('v');}
+function showPending(){hideAllAuth();gel('pp').classList.add('v');}
 async function checkApproval(){try{const r=await fetch(SERVER+'/api/auth/status',{headers:{'Authorization':'Bearer '+gTok()}});const d=await r.json();if(d.approved)launchApp();else showToast('Not approved yet.');}catch(e){showToast('Cannot connect to server.');}}
-function doLogout(){localStorage.clear();CU=null;['hdr','app','nav'].forEach(id=>document.getElementById(id).style.display='none');hideAllAuth();showAuth('ap-phone');}
-function showAuth(id){hideAllAuth();document.getElementById(id).classList.remove('h');applyLang(lang);}
-function hideAllAuth(){['ap-phone','ap-otp','ap-prof'].forEach(id=>document.getElementById(id).classList.add('h'));document.getElementById('pp').classList.remove('v');}
+function doLogout(){localStorage.clear();CU=null;['hdr','app','nav'].forEach(id=>{const _e=gel(id);if(_e)_e.style.display='none';});hideAllAuth();showAuth('ap-phone');}
+function showAuth(id){hideAllAuth();const _el=gel(id);if(_el)_el.classList.remove('h');applyLang(lang);}
+function hideAllAuth(){['ap-phone','ap-otp','ap-prof'].forEach(id=>{const _e=gel(id);if(_e)_e.classList.add('h');});gel('pp').classList.remove('v');}
 
 function launchApp(){
   hideAllAuth();
-  const sp=document.getElementById('spl');sp.style.display='flex';
+  const sp=gel('spl');sp.style.display='flex';
   setTimeout(()=>{
     sp.style.display='none';
-    ['hdr','nav'].forEach(id=>document.getElementById(id).style.display='flex');
-    document.getElementById('app').style.display='block';
+    ['hdr','nav'].forEach(id=>{const _e=gel(id);if(_e)_e.style.display='flex';});
+    gel('app').style.display='block';
     if(CU){
-      document.getElementById('prof-nm').textContent=CU.name||'User';
-      document.getElementById('prof-cy').textContent=(CU.city||'')+((CU.isAdmin||CU.role==='admin')?' · Admin':' · Member');
-      setAvi(document.getElementById('prof-av'),CU.name||'U');
-      setAvi(document.getElementById('pc-av'),CU.name||'U');
-      setAvi(document.getElementById('cmt-av'),CU.name||'U');
-      if(CU.isAdmin||CU.role==='admin'){document.getElementById('admin-link').style.display='block';}
-      document.getElementById('approve-link').style.display='block';
-      document.getElementById('pend-count').textContent=PENDING.length;
+      gel('prof-nm').textContent=CU.name||'User';
+      gel('prof-cy').textContent=(CU.city||'')+((CU.isAdmin||CU.role==='admin')?' · Admin':' · Member');
+      setAvi(gel('prof-av'),CU.name||'U');
+      setAvi(gel('pc-av'),CU.name||'U');
+      setAvi(gel('cmt-av'),CU.name||'U');
+      if(CU.isAdmin||CU.role==='admin'){gel('admin-link').style.display='block';}
+      gel('approve-link').style.display='block';
+      gel('pend-count').textContent=PENDING.length;
     }
     applyLang(lang);applyDark();initApp();
     // Audio unlock for browsers
@@ -1364,26 +1367,26 @@ function showAudioUnlock(){
 }
 function tryAutoPlayAudio(){
   // Silent unlock attempt
-  const a=document.getElementById('quran-audio');
+  const a=gel('quran-audio');
   if(!a)return;
   const dummy=new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAA==');
   dummy.volume=0;
   dummy.play().then(()=>{audioUnlocked=true;}).catch(()=>{/*needs gesture*/});
 }
-document.getElementById('au-btn').addEventListener('click',()=>{
+gel('au-btn').addEventListener('click',()=>{
   audioUnlocked=true;
-  document.getElementById('audio-unlock').classList.remove('show');
+  gel('audio-unlock').classList.remove('show');
   showToast('Audio enabled! 🎵 Tap ▶ on any Surah');
   if(playingId)playAudio(playingId);
 });
-document.getElementById('au-skip')?.addEventListener('click',()=>{
-  document.getElementById('audio-unlock').classList.remove('show');
+gel('au-skip')?.addEventListener('click',()=>{
+  gel('audio-unlock').classList.remove('show');
 });
 // Unlock on any user gesture if not already unlocked
 document.addEventListener('touchstart',()=>{
   if(!audioUnlocked){
     audioUnlocked=true;
-    const el=document.getElementById('audio-unlock');
+    const el=gel('audio-unlock');
     if(el&&el.classList.contains('show')){el.classList.remove('show');if(playingId)playAudio(playingId);}
   }
 },{once:false,passive:true});
@@ -1394,7 +1397,7 @@ document.addEventListener('click',()=>{if(!audioUnlocked){audioUnlocked=true;}},
 // ═══════════════════════════════════
 function showScreen(name){
   document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
-  const el=document.getElementById('sc-'+name);if(el)el.classList.add('on');
+  const el=gel('sc-'+name);if(el)el.classList.add('on');
   document.querySelectorAll('.nb').forEach(n=>{n.classList.remove('on');if(n.dataset.nav===name)n.classList.add('on');});
   closeNotif();
   if(name==='feed')loadPosts();
@@ -1402,25 +1405,26 @@ function showScreen(name){
   if(name==='approve')renderApproveList();
   if(name==='quran'&&!audioUnlocked){
     // Show gold pulse button for browsers
-    setTimeout(()=>document.getElementById('audio-unlock').classList.add('show'),700);
+    setTimeout(()=>gel('audio-unlock').classList.add('show'),700);
   }
 }
-document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('.nb');if(b)showScreen(b.dataset.nav);});
-document.getElementById('sc-home').addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(b)showScreen(b.dataset.nav);});
-document.getElementById('prof-hb').addEventListener('click',()=>showScreen('profile'));
-document.getElementById('notif-hb').addEventListener('click',toggleNotif);
-document.getElementById('lchip').addEventListener('click',toggleLang);
-document.getElementById('lang-item').addEventListener('click',toggleLang);
-document.getElementById('dark-item').addEventListener('click',toggleDark);
-document.getElementById('perm-item').addEventListener('click',reqPerms);
-document.getElementById('share-app-item').addEventListener('click',shareApp);
-document.getElementById('lgout-item').addEventListener('click',doLogout);
-document.getElementById('admin-nav-item')?.addEventListener('click',()=>showScreen('admin'));
-document.getElementById('pay-settings-item')?.addEventListener('click',()=>openSheet('paysettings'));
-document.getElementById('approve-nav-item')?.addEventListener('click',()=>showScreen('approve'));
-document.getElementById('prof-photo-inp').addEventListener('change',function(){
+on('nav','click',e=>{const b=e.target.closest('.nb');if(b)showScreen(b.dataset.nav);});
+on('sc-home','click',e=>{const b=e.target.closest('[data-nav]');if(b)showScreen(b.dataset.nav);});
+on('prof-hb','click',()=>showScreen('profile'));
+on('azan-hb','click',()=>openAzan());
+on('notif-hb','click',toggleNotif);
+on('lchip','click',toggleLang);
+on('lang-item','click',toggleLang);
+on('dark-item','click',toggleDark);
+on('perm-item','click',reqPerms);
+on('share-app-item','click',shareApp);
+on('lgout-item','click',doLogout);
+on('admin-nav-item','click',()=>showScreen('admin'));
+on('pay-settings-item','click',()=>openSheet('paysettings'));
+on('approve-nav-item','click',()=>showScreen('approve'));
+on('prof-photo-inp','change',function(){
   if(!this.files[0])return;
-  const r=new FileReader();r.onload=e=>{const a=document.getElementById('prof-av');if(a){a.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;a.style.background='transparent';}};r.readAsDataURL(this.files[0]);
+  const r=new FileReader();r.onload=e=>{const a=gel('prof-av');if(a){a.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;a.style.background='transparent';}};r.readAsDataURL(this.files[0]);
 });
 
 // ═══════════════════════════════════
@@ -1435,11 +1439,11 @@ function addNotification(icon,bg,title,text){
   notifications.unshift({id:Date.now(),icon,bg,title,text,time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),read:false});
   // Update badge immediately
   const unread=notifications.filter(n=>!n.read).length;
-  const nb=document.getElementById('nb');
+  const nb=gel('nb');
   if(nb){nb.textContent=unread;nb.style.display='flex';}
-  const nc=document.getElementById('notif-count');if(nc)nc.textContent=unread;
+  const nc=gel('notif-count');if(nc)nc.textContent=unread;
   // If panel is open, refresh it
-  if(document.getElementById('np').classList.contains('on'))renderNotifs();
+  if(gel('np').classList.contains('on'))renderNotifs();
   // Push notification (system)
   if(Notification.permission==='granted'){
     try{new Notification('Adnani Connected — '+title,{body:text,icon:'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 fill=%22%2314532d%22 rx=%226%22/><text y=%2226%22 font-size=%2222%22 x=%224%22>🕌</text></svg>'});}catch(e){}
@@ -1448,10 +1452,10 @@ function addNotification(icon,bg,title,text){
   try{fetch(SERVER+'/api/notifications',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({title,text,icon})}).catch(()=>{});}catch(e){}
 }
 function renderNotifs(){
-  const el=document.getElementById('notif-list');if(!el)return;
+  const el=gel('notif-list');if(!el)return;
   const unread=notifications.filter(n=>!n.read);
-  const nc=document.getElementById('notif-count');if(nc)nc.textContent=unread.length||'';
-  const nb=document.getElementById('nb');if(nb){
+  const nc=gel('notif-count');if(nc)nc.textContent=unread.length||'';
+  const nb=gel('nb');if(nb){
     if(unread.length){nb.textContent=unread.length;nb.style.display='flex';}
     else nb.style.display='none';
   }
@@ -1469,26 +1473,29 @@ function renderNotifs(){
     </div>`).join('');
 }
 function toggleNotif(){
-  const np=document.getElementById('np');
+  const np=gel('np');if(!np)return;
   const wasHidden=!np.classList.contains('on');
   np.classList.toggle('on');
-  if(wasHidden){renderNotifs();} // refresh on open
+  if(wasHidden)renderNotifs();
 }
-function closeNotif(){document.getElementById('np').classList.remove('on');}
-document.getElementById('clear-notif').addEventListener('click',()=>{
+function closeNotif(){const np=gel('np');if(np)np.classList.remove('on');}
+on('clear-notif','click',()=>{
   notifications.forEach(n=>n.read=true);
   renderNotifs();
-  const nb=document.getElementById('nb');if(nb)nb.style.display='none';
-  const nc=document.getElementById('notif-count');if(nc)nc.textContent='0';
+  const nb=gel('nb');if(nb)nb.style.display='none';
+  const nc=gel('notif-count');if(nc)nc.textContent='0';
 });
-document.getElementById('notif-list').addEventListener('click',e=>{const n=e.target.closest('.nitem');if(n){const id=Number(n.dataset.nid);const item=notifications.find(x=>x.id===id);if(item)item.read=true;renderNotifs();}});
-document.addEventListener('click',e=>{const np=document.getElementById('np'),nh=document.getElementById('notif-hb');if(!np.contains(e.target)&&e.target!==nh&&!nh.contains(e.target))np.classList.remove('on');});
+on('notif-list','click',e=>{const n=e.target.closest('.nitem');if(n){const id=Number(n.dataset.nid);const item=notifications.find(x=>x.id===id);if(item)item.read=true;renderNotifs();}});
+document.addEventListener('click',e=>{
+  const np=gel('np'),nh=gel('notif-hb');
+  if(np&&nh&&!np.contains(e.target)&&e.target!==nh&&!nh.contains(e.target))np.classList.remove('on');
+});
 
 // ═══════════════════════════════════
 // TOAST
 // ═══════════════════════════════════
 let tTimer;
-function showToast(msg){const e=document.getElementById('toast');e.textContent=msg;e.style.opacity='1';clearTimeout(tTimer);tTimer=setTimeout(()=>e.style.opacity='0',2600);}
+function showToast(msg){const e=gel('toast');e.textContent=msg;e.style.opacity='1';clearTimeout(tTimer);tTimer=setTimeout(()=>e.style.opacity='0',2600);}
 
 // ═══════════════════════════════════
 // 18 REAL MEMBERS
@@ -1577,13 +1584,13 @@ eventAttend[1]={count:9,attending:false};
 // ═══════════════════════════════════
 let memFilter='all',memSearch='';
 function renderMembers(){
-  const el=document.getElementById('mem-list');if(!el)return;
+  const el=gel('mem-list');if(!el)return;
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
   let list=MEMBERS;
   if(memFilter==='online')list=list.filter(m=>m.online);
   else if(memFilter!=='all')list=list.filter(m=>m.city.toLowerCase().includes(memFilter.toLowerCase()));
   if(memSearch)list=list.filter(m=>m.name.toLowerCase().includes(memSearch)||m.city.toLowerCase().includes(memSearch)||m.role.toLowerCase().includes(memSearch));
-  document.getElementById('mem-lbl').textContent=`${list.length} of ${MEMBERS.length} Members`;
+  gel('mem-lbl').textContent=`${list.length} of ${MEMBERS.length} Members`;
   el.innerHTML=list.map(m=>`
     <div class="mi">
       <div class="avwrap" data-memid="${m.id}"><div class="avi md" style="background:${avC(m.name)};position:relative;">${avI(m.name)}<div class="udot ${m.online?'ondot':'offdot'}"></div></div></div>
@@ -1599,26 +1606,26 @@ function renderMembers(){
       </div>
     </div>`).join('')||'<div class="empty">No members found</div>';
 }
-document.getElementById('mem-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#mem-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');memFilter=fp.dataset.filter;renderMembers();});
-document.getElementById('mem-srch').addEventListener('input',function(){memSearch=this.value.toLowerCase();renderMembers();});
-document.getElementById('mem-list').addEventListener('click',e=>{
+gel('mem-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#mem-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');memFilter=fp.dataset.filter;renderMembers();});
+gel('mem-srch').addEventListener('input',function(){memSearch=this.value.toLowerCase();renderMembers();});
+gel('mem-list').addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(b)openChat(Number(b.dataset.id),b.dataset.name,'direct');
   const em=e.target.closest('[data-edit-mem]');if(em)editMember(Number(em.dataset.editMem));
   const dm=e.target.closest('[data-del-mem]');if(dm&&confirm('Delete this member?')){MEMBERS=MEMBERS.filter(m=>m.id!==Number(dm.dataset.delMem));renderMembers();renderAdmin();showToast('Member deleted.');}
 });
-document.getElementById('mem-list').addEventListener('dblclick',e=>{const w=e.target.closest('.avwrap');if(w)showMemberProfile(Number(w.dataset.memid));});
-document.getElementById('add-member-btn').addEventListener('click',()=>{document.getElementById('am-id').value='';['am-nm','am-city','am-role','am-ph'].forEach(id=>document.getElementById(id).value='');document.getElementById('am-admin').value='0';document.querySelector('#so-addmember h3').textContent='👤 Add Member';openSheet('addmember');});
+gel('mem-list').addEventListener('dblclick',e=>{const w=e.target.closest('.avwrap');if(w)showMemberProfile(Number(w.dataset.memid));});
+gel('add-member-btn').addEventListener('click',()=>{gel('am-id').value='';['am-nm','am-city','am-role','am-ph'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});gel('am-admin').value='0';document.querySelector('#so-addmember h3').textContent='👤 Add Member';openSheet('addmember');});
 
 // EDIT MEMBER
 function editMember(id){
   const m=MEMBERS.find(x=>x.id===id);if(!m)return;
-  document.getElementById('am-id').value=id;document.getElementById('am-nm').value=m.name;document.getElementById('am-city').value=m.city;document.getElementById('am-role').value=m.role;document.getElementById('am-ph').value=m.phone;document.getElementById('am-admin').value=m.isAdmin?'1':'0';
+  gel('am-id').value=id;gel('am-nm').value=m.name;gel('am-city').value=m.city;gel('am-role').value=m.role;gel('am-ph').value=m.phone;gel('am-admin').value=m.isAdmin?'1':'0';
   document.querySelector('#so-addmember h3').textContent='✏️ Edit Member';openSheet('addmember');
 }
-document.getElementById('am-sub').addEventListener('click',()=>{
-  const nm=document.getElementById('am-nm').value.trim();if(!nm){showToast('Name required');return;}
-  const id=document.getElementById('am-id').value;
-  const obj={name:nm,city:document.getElementById('am-city').value.trim(),role:document.getElementById('am-role').value.trim()||'Member',phone:document.getElementById('am-ph').value.trim(),isAdmin:document.getElementById('am-admin').value==='1',online:false};
+gel('am-sub').addEventListener('click',()=>{
+  const nm=gel('am-nm').value.trim();if(!nm){showToast('Name required');return;}
+  const id=gel('am-id').value;
+  const obj={name:nm,city:gel('am-city').value.trim(),role:gel('am-role').value.trim()||'Member',phone:gel('am-ph').value.trim(),isAdmin:gel('am-admin').value==='1',online:false};
   if(id){const i=MEMBERS.findIndex(m=>m.id===Number(id));if(i>=0)MEMBERS[i]={...MEMBERS[i],...obj};}
   else{MEMBERS.push({id:Date.now(),...obj});}
   renderMembers();renderAdmin();closeSheet('addmember');showToast(id?'✅ Member updated!':'✅ Member added!');
@@ -1627,23 +1634,23 @@ document.getElementById('am-sub').addEventListener('click',()=>{
 // PROFILE MODAL
 function showMemberProfile(id){
   const m=MEMBERS.find(x=>x.id===id);if(!m)return;
-  setAvi(document.getElementById('pm-av'),m.name);
-  document.getElementById('pm-name').textContent=m.name;
-  document.getElementById('pm-role').textContent=m.role+(m.isAdmin?' 🛡️':'');
-  document.getElementById('pm-info').innerHTML=`<div class="pm-field"><div class="lbl">City</div><div class="val">📍 ${m.city}</div></div><div class="pm-field"><div class="lbl">Status</div><div class="val">${m.online?'🟢 Online':'⚫ Offline'}</div></div><div class="pm-field"><div class="lbl">Role</div><div class="val">${m.role}</div></div><div class="pm-field"><div class="lbl">Phone</div><div class="val" style="direction:ltr;">${m.phone}</div></div>`;
-  document.getElementById('pm-chat-btn').onclick=()=>{document.getElementById('prof-modal').classList.remove('on');openChat(m.id,m.name,'direct');};
-  document.getElementById('pm-call-btn').onclick=()=>window.open('tel:'+m.phone);
-  document.getElementById('prof-modal').classList.add('on');
+  setAvi(gel('pm-av'),m.name);
+  gel('pm-name').textContent=m.name;
+  gel('pm-role').textContent=m.role+(m.isAdmin?' 🛡️':'');
+  gel('pm-info').innerHTML=`<div class="pm-field"><div class="lbl">City</div><div class="val">📍 ${m.city}</div></div><div class="pm-field"><div class="lbl">Status</div><div class="val">${m.online?'🟢 Online':'⚫ Offline'}</div></div><div class="pm-field"><div class="lbl">Role</div><div class="val">${m.role}</div></div><div class="pm-field"><div class="lbl">Phone</div><div class="val" style="direction:ltr;">${m.phone}</div></div>`;
+  gel('pm-chat-btn').onclick=()=>{gel('prof-modal').classList.remove('on');openChat(m.id,m.name,'direct');};
+  gel('pm-call-btn').onclick=()=>window.open('tel:'+m.phone);
+  gel('prof-modal').classList.add('on');
 }
-document.getElementById('pm-close').addEventListener('click',()=>document.getElementById('prof-modal').classList.remove('on'));
-document.getElementById('prof-modal').addEventListener('click',e=>{if(e.target===document.getElementById('prof-modal'))document.getElementById('prof-modal').classList.remove('on');});
+gel('pm-close').addEventListener('click',()=>gel('prof-modal').classList.remove('on'));
+gel('prof-modal').addEventListener('click',e=>{if(e.target===gel('prof-modal'))gel('prof-modal').classList.remove('on');});
 
 // ═══════════════════════════════════
 // RENDER CHATS
 // ═══════════════════════════════════
 let chatFilter='all';
 function renderChats(){
-  const el=document.getElementById('chat-list');if(!el)return;
+  const el=gel('chat-list');if(!el)return;
   const list=chatFilter==='direct'?CHATS.filter(c=>c.type==='direct'):chatFilter==='group'?CHATS.filter(c=>c.type==='group'):CHATS;
   el.innerHTML=list.map(c=>`
     <div class="ci" data-cid="${c.id}" data-cname="${c.name}" data-ctype="${c.type}">
@@ -1652,20 +1659,20 @@ function renderChats(){
       <div class="ct"><time>${c.time}</time>${c.unread?`<div class="cunr">${c.unread}</div>`:''}</div>
     </div>`).join('');
 }
-document.getElementById('chat-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#chat-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');chatFilter=fp.dataset.cfilter;renderChats();});
-document.getElementById('chat-list').addEventListener('click',e=>{const row=e.target.closest('.ci');if(row)openChat(Number(row.dataset.cid),row.dataset.cname,row.dataset.ctype);});
-document.getElementById('chat-list').addEventListener('dblclick',e=>{const w=e.target.closest('.avwrap');if(!w)return;const m=MEMBERS.find(x=>x.id===Number(w.dataset.chatMem));if(m)showMemberProfile(m.id);});
-document.getElementById('new-group-btn').addEventListener('click',()=>{
-  const cont=document.getElementById('grp-members');
+gel('chat-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#chat-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');chatFilter=fp.dataset.cfilter;renderChats();});
+gel('chat-list').addEventListener('click',e=>{const row=e.target.closest('.ci');if(row)openChat(Number(row.dataset.cid),row.dataset.cname,row.dataset.ctype);});
+gel('chat-list').addEventListener('dblclick',e=>{const w=e.target.closest('.avwrap');if(!w)return;const m=MEMBERS.find(x=>x.id===Number(w.dataset.chatMem));if(m)showMemberProfile(m.id);});
+gel('new-group-btn').addEventListener('click',()=>{
+  const cont=gel('grp-members');
   cont.innerHTML=MEMBERS.map(m=>`<div class="member-check"><input type="checkbox" id="gc-${m.id}" value="${m.id}"><label for="gc-${m.id}" style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;">${mkAvi(m.name,'sm')}<span style="font-size:.83rem;">${m.name} <span style="color:var(--t3);font-size:.68rem;">· ${m.city}</span></span></label></div>`).join('');
   openSheet('group');
 });
-document.getElementById('grp-create').addEventListener('click',()=>{
-  const nm=document.getElementById('grp-nm').value.trim();if(!nm){showToast('Enter group name');return;}
+gel('grp-create').addEventListener('click',()=>{
+  const nm=gel('grp-nm').value.trim();if(!nm){showToast('Enter group name');return;}
   const sel=Array.from(document.querySelectorAll('#grp-members input:checked')).map(c=>Number(c.value));
   if(sel.length<2){showToast('Select at least 2 members');return;}
   CHATS.unshift({id:Date.now(),name:nm,last:'Group created',time:'Now',unread:0,type:'group',members:sel.length+1});
-  renderChats();document.getElementById('grp-nm').value='';closeSheet('group');showToast(`✅ Group "${nm}" created!`);
+  renderChats();gel('grp-nm').value='';closeSheet('group');showToast(`✅ Group "${nm}" created!`);
   addNotification('👥','#dcfce7',`Group "${nm}" created`,`${sel.length+1} members`);
 });
 
@@ -1673,26 +1680,26 @@ document.getElementById('grp-create').addEventListener('click',()=>{
 // CONNECT
 // ═══════════════════════════════════
 function renderConnect(){
-  document.getElementById('in-reqs').innerHTML=`<div class="ri">${mkAvi('Salman Ahmad')}<div class="rinfo"><h4>Salman Ahmad</h4><p>Hyderabad · Member</p></div><div class="rb"><button class="btn bs" style="font-size:.68rem;padding:4px 8px;" data-accept>Accept</button><button class="btn br" style="font-size:.68rem;padding:4px 8px;" data-reject>Decline</button></div></div>`;
-  document.getElementById('out-reqs').innerHTML=`<div class="ri">${mkAvi('Mohsin Raza')}<div class="rinfo"><h4>Mohsin Raza</h4><p>Riyadh · Pending</p></div><div class="rb"><button class="btn br" style="font-size:.68rem;padding:4px 8px;" data-reject>Cancel</button></div></div>`;
-  document.getElementById('my-conn').innerHTML=MEMBERS.slice(0,5).map(m=>`<div class="mi">${mkAvi(m.name,'md')}<div class="info"><h4>${m.name}</h4><p>${m.city} · ${m.role}</p></div><button class="btn bp" data-action="chat" data-id="${m.id}" data-name="${m.name}" style="padding:5px 9px;font-size:.68rem;">Chat</button></div>`).join('');
+  gel('in-reqs').innerHTML=`<div class="ri">${mkAvi('Salman Ahmad')}<div class="rinfo"><h4>Salman Ahmad</h4><p>Hyderabad · Member</p></div><div class="rb"><button class="btn bs" style="font-size:.68rem;padding:4px 8px;" data-accept>Accept</button><button class="btn br" style="font-size:.68rem;padding:4px 8px;" data-reject>Decline</button></div></div>`;
+  gel('out-reqs').innerHTML=`<div class="ri">${mkAvi('Mohsin Raza')}<div class="rinfo"><h4>Mohsin Raza</h4><p>Riyadh · Pending</p></div><div class="rb"><button class="btn br" style="font-size:.68rem;padding:4px 8px;" data-reject>Cancel</button></div></div>`;
+  gel('my-conn').innerHTML=MEMBERS.slice(0,5).map(m=>`<div class="mi">${mkAvi(m.name,'md')}<div class="info"><h4>${m.name}</h4><p>${m.city} · ${m.role}</p></div><button class="btn bp" data-action="chat" data-id="${m.id}" data-name="${m.name}" style="padding:5px 9px;font-size:.68rem;">Chat</button></div>`).join('');
 }
-document.getElementById('in-reqs').addEventListener('click',e=>{if(e.target.dataset.accept!==undefined||e.target.dataset.reject!==undefined)e.target.closest('.ri')?.remove();});
-document.getElementById('out-reqs').addEventListener('click',e=>{if(e.target.dataset.reject!==undefined)e.target.closest('.ri')?.remove();});
-document.getElementById('my-conn').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)openChat(Number(b.dataset.id),b.dataset.name,'direct');});
+gel('in-reqs').addEventListener('click',e=>{if(e.target.dataset.accept!==undefined||e.target.dataset.reject!==undefined)e.target.closest('.ri')?.remove();});
+gel('out-reqs').addEventListener('click',e=>{if(e.target.dataset.reject!==undefined)e.target.closest('.ri')?.remove();});
+gel('my-conn').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)openChat(Number(b.dataset.id),b.dataset.name,'direct');});
 
 // ═══════════════════════════════════
 // LOCATION
 // ═══════════════════════════════════
 // renderLocation defined below with city-tap support
-document.getElementById('loc-btn').addEventListener('click',function(){
+gel('loc-btn').addEventListener('click',function(){
   if(!navigator.geolocation){showToast('Location not available on this device');return;}
 
   this.textContent='📍 Getting location...';this.disabled=true;
   navigator.geolocation.getCurrentPosition(
     pos=>{
       const {latitude:la,longitude:lo}=pos.coords;
-      document.getElementById('loc-result').innerHTML=`📍 <strong>${la.toFixed(5)}, ${lo.toFixed(5)}</strong> — <a href="https://maps.google.com/?q=${la},${lo}" target="_blank" style="color:var(--p2);">Open in Maps →</a>`;
+      gel('loc-result').innerHTML=`📍 <strong>${la.toFixed(5)}, ${lo.toFixed(5)}</strong> — <a href="https://maps.google.com/?q=${la},${lo}" target="_blank" style="color:var(--p2);">Open in Maps →</a>`;
       showToast('📍 Location acquired!');
       this.textContent='📍 Location Shared ✓';
     },
@@ -1755,7 +1762,7 @@ const AYAHS={
 
 function renderSurahs(q=''){
   const list=q?SURAHS.filter(s=>s[1].toLowerCase().includes(q.toLowerCase())||s[2].includes(q)):SURAHS;
-  document.getElementById('surah-list').innerHTML=list.map(s=>`
+  gel('surah-list').innerHTML=list.map(s=>`
     <div class="sui" data-sid="${s[0]}">
       <div class="snm ${playingId===s[0]?'on':''}">${s[0]}</div>
       <div class="sinf"><h4>${s[1]}</h4><p>${s[3]} verses · ${s[4]}</p></div>
@@ -1763,23 +1770,23 @@ function renderSurahs(q=''){
       <button class="play-btn ${playingId===s[0]?'on':''}" data-play="${s[0]}" data-name="${s[1]}" data-ar="${s[2]}">${playingId===s[0]?'⏸':'▶'}</button>
     </div>`).join('')||'<div class="empty">No results</div>';
   // Populate read selector
-  const sel=document.getElementById('read-surah-sel');
+  const sel=gel('read-surah-sel');
   if(sel&&sel.options.length===0){SURAHS.forEach(s=>{const o=document.createElement('option');o.value=s[0];o.textContent=s[0]+'. '+s[1]+' — '+s[2];sel.appendChild(o);});}
 }
-document.getElementById('q-srch').addEventListener('input',function(){renderSurahs(this.value);});
+gel('q-srch').addEventListener('input',function(){renderSurahs(this.value);});
 
 // Quran Tabs
 document.querySelectorAll('.qtab').forEach(btn=>btn.addEventListener('click',()=>{
   document.querySelectorAll('.qtab').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.quran-panel').forEach(p=>p.classList.remove('on'));
-  btn.classList.add('on');document.getElementById('qp-'+btn.dataset.qtab).classList.add('on');
+  btn.classList.add('on');const _qp=gel('qp-'+btn.dataset.qtab);if(_qp)_qp.classList.add('on');
 }));
 
 // Read Surah
-document.getElementById('read-surah-sel').addEventListener('change',function(){loadAyahs(Number(this.value));});
+gel('read-surah-sel').addEventListener('change',function(){loadAyahs(Number(this.value));});
 function loadAyahs(num){
   const surah=SURAHS.find(s=>s[0]===num);if(!surah)return;
-  const reader=document.getElementById('ayah-reader');
+  const reader=gel('ayah-reader');
   // Show static data immediately if available
   const staticAyahs=AYAHS[num];
   const bismillah=num!==9?'<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>':'';
@@ -1808,36 +1815,36 @@ function loadAyahs(num){
 }
 
 // Audio
-const audioEl=document.getElementById('quran-audio');
-const qpPlayer=document.getElementById('qplayer');
+const audioEl=gel('quran-audio');
+const qpPlayer=gel('qplayer');
 const fmt=s=>{const m=Math.floor(s/60);return m+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60);};
 
 function playAudio(num,name,arabic){
-  if(!audioUnlocked){document.getElementById('audio-unlock').classList.add('show');playingId=num;document.getElementById('qp-nm').textContent=name||SURAHS.find(s=>s[0]===num)?.[1]||'Surah '+num;document.getElementById('qp-ar').textContent=arabic||SURAHS.find(s=>s[0]===num)?.[2]||'';qpPlayer.classList.add('on');return;}
-  if(playingId===num&&!audioEl.paused){audioEl.pause();document.getElementById('qp-play').textContent='▶';renderSurahs(document.getElementById('q-srch').value);return;}
+  if(!audioUnlocked){gel('audio-unlock').classList.add('show');playingId=num;gel('qp-nm').textContent=name||SURAHS.find(s=>s[0]===num)?.[1]||'Surah '+num;gel('qp-ar').textContent=arabic||SURAHS.find(s=>s[0]===num)?.[2]||'';qpPlayer.classList.add('on');return;}
+  if(playingId===num&&!audioEl.paused){audioEl.pause();gel('qp-play').textContent='▶';renderSurahs(gel('q-srch').value);return;}
   playingId=num;
   const s=SURAHS.find(x=>x[0]===num);
   const nm=s?s[1]:'Surah '+num,ar=s?s[2]:'';
-  document.getElementById('qp-nm').textContent=nm;document.getElementById('qp-ar').textContent=ar;
+  gel('qp-nm').textContent=nm;gel('qp-ar').textContent=ar;
   qpPlayer.classList.add('on');
   audioEl.src=QURAN_CDN+num+'.mp3';
   audioEl.load();
   const p=audioEl.play();
-  if(p!==undefined){p.then(()=>{document.getElementById('qp-play').textContent='⏸';}).catch(()=>{showToast('Tap anywhere to enable audio, then try again');document.getElementById('audio-unlock').classList.add('show');});}
-  renderSurahs(document.getElementById('q-srch').value);
+  if(p!==undefined){p.then(()=>{gel('qp-play').textContent='⏸';}).catch(()=>{showToast('Tap anywhere to enable audio, then try again');gel('audio-unlock').classList.add('show');});}
+  renderSurahs(gel('q-srch').value);
 }
 
-audioEl.addEventListener('timeupdate',()=>{if(!audioEl.duration||isNaN(audioEl.duration))return;const pct=(audioEl.currentTime/audioEl.duration)*100;document.getElementById('qp-range').value=pct;document.getElementById('qp-cur').textContent=fmt(audioEl.currentTime);document.getElementById('qp-dur').textContent=fmt(audioEl.duration);});
-audioEl.addEventListener('ended',()=>{document.getElementById('qp-play').textContent='▶';if(audioRepeat&&playingId){setTimeout(()=>playAudio(playingId),500);return;}if(audioAutoPlay&&playingId&&playingId<114){const next=SURAHS.find(s=>s[0]===playingId+1);if(next)setTimeout(()=>playAudio(next[0]),800);}renderSurahs(document.getElementById('q-srch').value);});
+audioEl.addEventListener('timeupdate',()=>{if(!audioEl.duration||isNaN(audioEl.duration))return;const pct=(audioEl.currentTime/audioEl.duration)*100;gel('qp-range').value=pct;gel('qp-cur').textContent=fmt(audioEl.currentTime);gel('qp-dur').textContent=fmt(audioEl.duration);});
+audioEl.addEventListener('ended',()=>{gel('qp-play').textContent='▶';if(audioRepeat&&playingId){setTimeout(()=>playAudio(playingId),500);return;}if(audioAutoPlay&&playingId&&playingId<114){const next=SURAHS.find(s=>s[0]===playingId+1);if(next)setTimeout(()=>playAudio(next[0]),800);}renderSurahs(gel('q-srch').value);});
 audioEl.addEventListener('error',()=>showToast('Audio failed to load. Check internet connection.'));
-document.getElementById('qp-play').addEventListener('click',()=>{if(audioEl.paused){const p=audioEl.play();if(p)p.then(()=>document.getElementById('qp-play').textContent='⏸').catch(()=>{document.getElementById('audio-unlock').classList.add('show');});}else{audioEl.pause();document.getElementById('qp-play').textContent='▶';}});
-document.getElementById('qp-range').addEventListener('input',()=>{if(audioEl.duration)audioEl.currentTime=(document.getElementById('qp-range').value/100)*audioEl.duration;});
-document.getElementById('qp-close').addEventListener('click',()=>{audioEl.pause();playingId=null;qpPlayer.classList.remove('on');document.getElementById('qp-play').textContent='▶';renderSurahs(document.getElementById('q-srch').value);});
-document.getElementById('qp-repeat').addEventListener('click',function(){audioRepeat=!audioRepeat;this.classList.toggle('on',audioRepeat);showToast(audioRepeat?'🔁 Repeat ON':'Repeat OFF');});
-document.getElementById('qp-auto').addEventListener('click',function(){audioAutoPlay=!audioAutoPlay;this.classList.toggle('on',audioAutoPlay);showToast(audioAutoPlay?'▶▶ Auto-play ON':'Auto-play OFF');});
-document.getElementById('qp-prev').addEventListener('click',()=>{if(playingId&&playingId>1){const p=SURAHS.find(s=>s[0]===playingId-1);if(p)playAudio(p[0]);}});
-document.getElementById('qp-next').addEventListener('click',()=>{if(playingId&&playingId<114){const n=SURAHS.find(s=>s[0]===playingId+1);if(n)playAudio(n[0]);}else if(!playingId)playAudio(1);});
-document.getElementById('surah-list').addEventListener('click',e=>{const pb=e.target.closest('[data-play]');if(pb)playAudio(Number(pb.dataset.play),pb.dataset.name,pb.dataset.ar);});
+gel('qp-play').addEventListener('click',()=>{if(audioEl.paused){const p=audioEl.play();if(p)p.then(()=>gel('qp-play').textContent='⏸').catch(()=>{gel('audio-unlock').classList.add('show');});}else{audioEl.pause();gel('qp-play').textContent='▶';}});
+gel('qp-range').addEventListener('input',()=>{if(audioEl.duration)audioEl.currentTime=(gel('qp-range').value/100)*audioEl.duration;});
+gel('qp-close').addEventListener('click',()=>{audioEl.pause();playingId=null;qpPlayer.classList.remove('on');gel('qp-play').textContent='▶';renderSurahs(gel('q-srch').value);});
+gel('qp-repeat').addEventListener('click',function(){audioRepeat=!audioRepeat;this.classList.toggle('on',audioRepeat);showToast(audioRepeat?'🔁 Repeat ON':'Repeat OFF');});
+gel('qp-auto').addEventListener('click',function(){audioAutoPlay=!audioAutoPlay;this.classList.toggle('on',audioAutoPlay);showToast(audioAutoPlay?'▶▶ Auto-play ON':'Auto-play OFF');});
+gel('qp-prev').addEventListener('click',()=>{if(playingId&&playingId>1){const p=SURAHS.find(s=>s[0]===playingId-1);if(p)playAudio(p[0]);}});
+gel('qp-next').addEventListener('click',()=>{if(playingId&&playingId<114){const n=SURAHS.find(s=>s[0]===playingId+1);if(n)playAudio(n[0]);}else if(!playingId)playAudio(1);});
+gel('surah-list').addEventListener('click',e=>{const pb=e.target.closest('[data-play]');if(pb)playAudio(Number(pb.dataset.play),pb.dataset.name,pb.dataset.ar);});
 
 // ═══════════════════════════════════
 // BUSINESS
@@ -1846,7 +1853,7 @@ let bizFilter='all';
 function renderBusiness(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
   const list=bizFilter==='all'?BUSINESSES:BUSINESSES.filter(b=>b.type.toLowerCase()===bizFilter||b.type.toLowerCase().includes(bizFilter));
-  document.getElementById('biz-list').innerHTML=list.map(b=>`
+  gel('biz-list').innerHTML=list.map(b=>`
     <div class="bcard" id="bc-${b.id}">
       <div class="bh" style="background:${b.color};">
         <div class="avi md" style="background:rgba(255,255,255,.2);">${avI(b.name)}</div>
@@ -1865,16 +1872,16 @@ function renderBusiness(){
       </div>
     </div>`).join('');
 }
-document.getElementById('biz-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#biz-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');bizFilter=fp.dataset.bfilter||'all';renderBusiness();});
-document.getElementById('biz-list').addEventListener('click',e=>{
+gel('biz-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#biz-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');bizFilter=fp.dataset.bfilter||'all';renderBusiness();});
+gel('biz-list').addEventListener('click',e=>{
   const cb=e.target.closest('[data-biz-chat]');if(cb)openChat(1,'Mahmood Ahmad','direct');
-  const eb=e.target.closest('[data-edit-biz]');if(eb){const bz=BUSINESSES.find(x=>x.id===Number(eb.dataset.editBiz));if(bz){document.getElementById('b-nm').value=bz.name;document.getElementById('b-desc').value=bz.desc;document.getElementById('b-ph').value=bz.phone;document.getElementById('b-city').value=bz.city;document.getElementById('b-cat').value=bz.type;document.querySelector('#so-biz h3').textContent='✏️ Edit Business';openSheet('biz');editCtx={type:'biz',id:bz.id};}}
+  const eb=e.target.closest('[data-edit-biz]');if(eb){const bz=BUSINESSES.find(x=>x.id===Number(eb.dataset.editBiz));if(bz){gel('b-nm').value=bz.name;gel('b-desc').value=bz.desc;gel('b-ph').value=bz.phone;gel('b-city').value=bz.city;gel('b-cat').value=bz.type;document.querySelector('#so-biz h3').textContent='✏️ Edit Business';openSheet('biz');editCtx={type:'biz',id:bz.id};}}
   const db=e.target.closest('[data-del-biz]');if(db&&confirm('Delete this business?')){BUSINESSES.splice(BUSINESSES.findIndex(x=>x.id===Number(db.dataset.delBiz)),1);renderBusiness();showToast('Business deleted.');}
 });
-document.getElementById('addbiz-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['b-nm','b-desc','b-ph','b-city'].forEach(id=>document.getElementById(id).value='');document.querySelector('#so-biz h3').textContent='🏪 Add Business';openSheet('biz');});
-document.getElementById('biz-sub').addEventListener('click',()=>{
-  const nm=document.getElementById('b-nm').value.trim();if(!nm){showToast('Business name required');return;}
-  const obj={name:nm,type:document.getElementById('b-cat').value,desc:document.getElementById('b-desc').value||'—',phone:document.getElementById('b-ph').value||'—',tags:[document.getElementById('b-cat').value],city:document.getElementById('b-city').value||'—',color:'#374151'};
+gel('addbiz-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['b-nm','b-desc','b-ph','b-city'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});document.querySelector('#so-biz h3').textContent='🏪 Add Business';openSheet('biz');});
+gel('biz-sub').addEventListener('click',()=>{
+  const nm=gel('b-nm').value.trim();if(!nm){showToast('Business name required');return;}
+  const obj={name:nm,type:gel('b-cat').value,desc:gel('b-desc').value||'—',phone:gel('b-ph').value||'—',tags:[gel('b-cat').value],city:gel('b-city').value||'—',color:'#374151'};
   if(editCtx.id){const i=BUSINESSES.findIndex(x=>x.id===editCtx.id);if(i>=0)BUSINESSES[i]={...BUSINESSES[i],...obj};}
   else BUSINESSES.push({id:Date.now(),...obj});
   renderBusiness();closeSheet('biz');showToast(editCtx.id?'✅ Business updated!':'✅ Business added!');editCtx={type:'',id:null};
@@ -1887,7 +1894,7 @@ let rishtaFilter='all';
 function renderRishta(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
   const list=rishtaFilter==='all'?RISHTA:RISHTA.filter(r=>rishtaFilter==='m'||rishtaFilter==='f'?r.type===rishtaFilter:r.city.toLowerCase().includes(rishtaFilter));
-  document.getElementById('rishta-list').innerHTML=list.map(r=>`
+  gel('rishta-list').innerHTML=list.map(r=>`
     <div class="rcard ${r.type==='m'?'m':'f'}">
       <div class="rinn">
         <div class="rprf">
@@ -1909,18 +1916,18 @@ function renderRishta(){
       </div>
     </div>`).join('');
 }
-document.getElementById('rishta-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#rishta-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');rishtaFilter=fp.dataset.rfilter||'all';renderRishta();});
-document.getElementById('rishta-list').addEventListener('click',e=>{
+gel('rishta-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#rishta-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');rishtaFilter=fp.dataset.rfilter||'all';renderRishta();});
+gel('rishta-list').addEventListener('click',e=>{
   if(e.target.closest('[data-rishta-contact]'))openChat(1,'Mahmood Ahmad (Rishta Inquiry)','direct');
   if(e.target.closest('[data-rishta-int]'))showToast('Interest noted. Admin will contact you.');
-  const er=e.target.closest('[data-edit-rishta]');if(er){const r=RISHTA.find(x=>x.id===Number(er.dataset.editRishta));if(r){document.getElementById('r-nm').value=r.name;document.getElementById('r-gen').value=r.type;document.getElementById('r-age').value=r.age;document.getElementById('r-city').value=r.city;document.getElementById('r-edu').value=r.edu;document.getElementById('r-job').value=r.job;document.getElementById('r-about').value=r.about;document.getElementById('r-ph').value=r.ph||'';editCtx={type:'rishta',id:r.id};openSheet('rishta');}}
+  const er=e.target.closest('[data-edit-rishta]');if(er){const r=RISHTA.find(x=>x.id===Number(er.dataset.editRishta));if(r){gel('r-nm').value=r.name;gel('r-gen').value=r.type;gel('r-age').value=r.age;gel('r-city').value=r.city;gel('r-edu').value=r.edu;gel('r-job').value=r.job;gel('r-about').value=r.about;gel('r-ph').value=r.ph||'';editCtx={type:'rishta',id:r.id};openSheet('rishta');}}
   const dr=e.target.closest('[data-del-rishta]');if(dr&&confirm('Delete this rishta entry?')){RISHTA.splice(RISHTA.findIndex(x=>x.id===Number(dr.dataset.delRishta)),1);renderRishta();showToast('Entry deleted.');}
 });
-document.getElementById('addrishta-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['r-nm','r-age','r-city','r-edu','r-job','r-about','r-ph'].forEach(id=>document.getElementById(id).value='');openSheet('rishta');});
-document.getElementById('rishta-sub').addEventListener('click',()=>{
-  const nm=document.getElementById('r-nm').value.trim();if(!nm){showToast('Name required');return;}
-  const userPhone=document.getElementById('r-ph').value.trim()||phone||'';
-  const obj={name:nm,type:document.getElementById('r-gen').value,age:Number(document.getElementById('r-age').value)||0,city:document.getElementById('r-city').value||'—',edu:document.getElementById('r-edu').value||'—',job:document.getElementById('r-job').value||'—',about:document.getElementById('r-about').value||'—',ph:userPhone};
+gel('addrishta-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['r-nm','r-age','r-city','r-edu','r-job','r-about','r-ph'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});openSheet('rishta');});
+gel('rishta-sub').addEventListener('click',()=>{
+  const nm=gel('r-nm').value.trim();if(!nm){showToast('Name required');return;}
+  const userPhone=gel('r-ph').value.trim()||phone||'';
+  const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone};
   if(editCtx.id){const i=RISHTA.findIndex(x=>x.id===editCtx.id);if(i>=0)RISHTA[i]={...RISHTA[i],...obj};}
   else RISHTA.push({id:Date.now(),...obj});
   renderRishta();closeSheet('rishta');showToast(editCtx.id?'✅ Updated!':'✅ Rishta registered!');editCtx={type:'',id:null};
@@ -1932,7 +1939,7 @@ document.getElementById('rishta-sub').addEventListener('click',()=>{
 // ═══════════════════════════════════
 function renderEvents(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
-  document.getElementById('events-list').innerHTML=EVENTS.map(e=>{const a=eventAttend[e.id]||{count:0,attending:false};return `
+  gel('events-list').innerHTML=EVENTS.map(e=>{const a=eventAttend[e.id]||{count:0,attending:false};return `
     <div class="ecard" id="ec-${e.id}">
       <div class="ed" style="background:${e.color};"><div class="day">${e.day}</div><div class="mo">${e.month}</div></div>
       <div class="eb"><h4>${e.name}</h4><p>📍 ${e.place}</p>
@@ -1946,27 +1953,27 @@ function renderEvents(){
       </div>
     </div>`;}).join('');
 }
-document.getElementById('events-list').addEventListener('click',e=>{
-  const ab=e.target.closest('[data-attend]');if(ab){const id=Number(ab.dataset.attend);const a=eventAttend[id];a.attending=!a.attending;a.count+=a.attending?1:-1;ab.textContent=a.attending?'✓ Attending':'Attend';ab.className=`btn ${a.attending?'bs':'bp'}`;ab.style.cssText='font-size:.68rem;padding:4px 9px;';document.getElementById('ac-'+id).textContent=a.count+' attending';showToast(a.attending?'✅ Attending!':'Removed from attendees');}
+gel('events-list').addEventListener('click',e=>{
+  const ab=e.target.closest('[data-attend]');if(ab){const id=Number(ab.dataset.attend);const a=eventAttend[id];a.attending=!a.attending;a.count+=a.attending?1:-1;ab.textContent=a.attending?'✓ Attending':'Attend';ab.className=`btn ${a.attending?'bs':'bp'}`;ab.style.cssText='font-size:.68rem;padding:4px 9px;';gel('ac-'+id).textContent=a.count+' attending';showToast(a.attending?'✅ Attending!':'Removed from attendees');}
   const sb=e.target.closest('[data-share-ev]');if(sb)shareLink(sb.dataset.shareEv);
-  const eb=e.target.closest('[data-edit-ev]');if(eb){const ev=EVENTS.find(x=>x.id===Number(eb.dataset.editEv));if(ev){document.getElementById('ev-nm').value=ev.name;document.getElementById('ev-venue').value=ev.place;document.getElementById('ev-cat').value=ev.type;document.getElementById('ev-tm').value=ev.time;editCtx={type:'event',id:ev.id};openSheet('event');}}
+  const eb=e.target.closest('[data-edit-ev]');if(eb){const ev=EVENTS.find(x=>x.id===Number(eb.dataset.editEv));if(ev){gel('ev-nm').value=ev.name;gel('ev-venue').value=ev.place;gel('ev-cat').value=ev.type;gel('ev-tm').value=ev.time;editCtx={type:'event',id:ev.id};openSheet('event');}}
   const db=e.target.closest('[data-del-ev]');if(db&&confirm('Delete this event?')){const idx=EVENTS.findIndex(x=>x.id===Number(db.dataset.delEv));EVENTS.splice(idx,1);renderEvents();showToast('Event deleted.');}
 });
-document.getElementById('event-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#event-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');const f=fp.dataset.efilter;document.querySelectorAll('.ecard').forEach(c=>{c.style.display=f==='all'||c.querySelector('.etag').textContent.toLowerCase()===f?'flex':'none';});});
-document.getElementById('addevent-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['ev-nm','ev-dt','ev-tm','ev-venue','ev-desc'].forEach(id=>document.getElementById(id).value='');openSheet('event');});
-document.getElementById('event-sub').addEventListener('click',()=>{
-  const nm=document.getElementById('ev-nm').value.trim();if(!nm){showToast('Event name required');return;}
-  const dt=document.getElementById('ev-dt').value,parts=dt?dt.split('-'):[];
-  const obj={day:parts[2]||'?',month:parts[1]?['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(parts[1])]:'?',name:nm,place:document.getElementById('ev-venue').value||'TBD',type:document.getElementById('ev-cat').value,time:document.getElementById('ev-tm').value||'TBD',color:'#374151'};
+gel('event-fb').addEventListener('click',e=>{const fp=e.target.closest('.fp');if(!fp)return;document.querySelectorAll('#event-fb .fp').forEach(p=>p.classList.remove('on'));fp.classList.add('on');const f=fp.dataset.efilter;document.querySelectorAll('.ecard').forEach(c=>{c.style.display=f==='all'||c.querySelector('.etag').textContent.toLowerCase()===f?'flex':'none';});});
+gel('addevent-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['ev-nm','ev-dt','ev-tm','ev-venue','ev-desc'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});openSheet('event');});
+gel('event-sub').addEventListener('click',()=>{
+  const nm=gel('ev-nm').value.trim();if(!nm){showToast('Event name required');return;}
+  const dt=gel('ev-dt').value,parts=dt?dt.split('-'):[];
+  const obj={day:parts[2]||'?',month:parts[1]?['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(parts[1])]:'?',name:nm,place:gel('ev-venue').value||'TBD',type:gel('ev-cat').value,time:gel('ev-tm').value||'TBD',color:'#374151'};
   if(editCtx.id){const i=EVENTS.findIndex(x=>x.id===editCtx.id);if(i>=0)EVENTS[i]={...EVENTS[i],...obj};}
   else{const ne={id:Date.now(),...obj};EVENTS.push(ne);eventAttend[ne.id]={count:0,attending:false};}
   renderEvents();closeSheet('event');showToast(editCtx.id?'✅ Event updated!':'✅ Event added!');editCtx={type:'',id:null};
 });
-document.getElementById('home-attend').addEventListener('click',function(){
+gel('home-attend').addEventListener('click',function(){
   const a=eventAttend[1];if(!a)return;
   a.attending=!a.attending;a.count+=a.attending?1:-1;
   this.textContent=a.attending?'✓ Attending':'✓ Attend';this.className=`btn ${a.attending?'bs':'bp'}`;this.style.cssText='font-size:.7rem;padding:5px 10px;';
-  document.getElementById('home-ac').textContent=a.count+' attending';showToast(a.attending?'✅ Attending!':'Removed');
+  gel('home-ac').textContent=a.count+' attending';showToast(a.attending?'✅ Attending!':'Removed');
 });
 
 // ═══════════════════════════════════
@@ -1974,7 +1981,7 @@ document.getElementById('home-attend').addEventListener('click',function(){
 // ═══════════════════════════════════
 function renderCharity(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
-  document.getElementById('charity-list').innerHTML=CHARITIES.map(c=>`
+  gel('charity-list').innerHTML=CHARITIES.map(c=>`
     <div class="chcard">
       <div class="chh" style="background:${c.color};"><h4>${c.name}</h4><p>${c.desc}</p></div>
       <div class="chp"><div class="chpl"><span>Raised</span><span style="font-weight:700;color:var(--p2);">${Math.round(c.raised/c.goal*100)}%</span></div><div class="pbar"><div class="pfill" style="width:${Math.round(c.raised/c.goal*100)}%"></div></div></div>
@@ -1986,48 +1993,48 @@ function renderCharity(){
       </div>
     </div>`).join('');
 }
-document.getElementById('charity-list').addEventListener('click',e=>{
-  if(e.target.closest('[data-donate-c]')||e.target===document.getElementById('donate-btn'))openSheet('donate');
+gel('charity-list').addEventListener('click',e=>{
+  if(e.target.closest('[data-donate-c]')||e.target===gel('donate-btn'))openSheet('donate');
   const s=e.target.closest('[data-share-ch]');if(s)shareLink('Support: '+s.dataset.shareCh);
   const d=e.target.closest('[data-del-ch]');if(d&&confirm('Delete this charity?')){CHARITIES.splice(CHARITIES.findIndex(x=>x.id===Number(d.dataset.delCh)),1);renderCharity();showToast('Deleted.');}
 });
-document.getElementById('donate-btn').addEventListener('click',()=>openSheet('donate'));
+gel('donate-btn').addEventListener('click',()=>openSheet('donate'));
 
 // PAYMENT TABS
-document.querySelectorAll('.ptab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.ppanel').forEach(p=>p.classList.remove('on'));btn.classList.add('on');document.getElementById('pp-'+btn.dataset.ptab).classList.add('on');}));
+document.querySelectorAll('.ptab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.ppanel').forEach(p=>p.classList.remove('on'));btn.classList.add('on');gel('pp-'+btn.dataset.ptab).classList.add('on');}));
 // Amount selection
-document.querySelectorAll('.amt-btn').forEach(btn=>btn.addEventListener('click',function(){document.querySelectorAll('.amt-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');const custom=document.getElementById('don-amt-custom');if(this.dataset.amt==='custom'){custom.style.display='block';donAmt=0;}else{custom.style.display='none';donAmt=Number(this.dataset.amt);}}));
+document.querySelectorAll('.amt-btn').forEach(btn=>btn.addEventListener('click',function(){document.querySelectorAll('.amt-btn').forEach(b=>b.classList.remove('sel'));this.classList.add('sel');const custom=gel('don-amt-custom');if(this.dataset.amt==='custom'){custom.style.display='block';donAmt=0;}else{custom.style.display='none';donAmt=Number(this.dataset.amt);}}));
 // UPI Apps
 document.querySelectorAll('.upi-app').forEach(btn=>btn.addEventListener('click',function(){
   const upiId=paySettings.upi||'adnaniwaqf@upi';
-  const amt=document.getElementById('don-amt-custom').style.display==='block'?Number(document.getElementById('don-amt-custom').value)||500:donAmt||500;
-  const proj=document.getElementById('don-proj').value;
+  const amt=gel('don-amt-custom').style.display==='block'?Number(gel('don-amt-custom').value)||500:donAmt||500;
+  const proj=gel('don-proj').value;
   const upiUrl=`upi://pay?pa=${upiId}&pn=${encodeURIComponent(paySettings.holder||'Adnani Waqf')}&am=${amt}&cu=INR&tn=${encodeURIComponent(proj)}`;
   const appMap={gpay:'google.com/pay',phonepe:'phonepe.com',paytm:'paytm.com',any:null};
   window.location.href=upiUrl;
   setTimeout(()=>showToast(`Opening ${this.querySelector(':not(.upi-icon)').textContent.trim()}...`),100);
 }));
-document.getElementById('copy-upi').addEventListener('click',()=>{navigator.clipboard?.writeText(paySettings.upi||'adnaniwaqf@upi').then(()=>showToast('UPI ID copied!')).catch(()=>showToast(paySettings.upi||'adnaniwaqf@upi'));});
-document.getElementById('rec-sub').addEventListener('click',()=>{
-  const amt=Number(document.getElementById('rec-amt').value);if(!amt){showToast('Enter amount');return;}
-  const entry={proj:document.getElementById('rec-proj').value,amt,method:document.getElementById('rec-method').value,txn:document.getElementById('rec-txn').value,date:new Date().toLocaleDateString()};
+gel('copy-upi').addEventListener('click',()=>{navigator.clipboard?.writeText(paySettings.upi||'adnaniwaqf@upi').then(()=>showToast('UPI ID copied!')).catch(()=>showToast(paySettings.upi||'adnaniwaqf@upi'));});
+gel('rec-sub').addEventListener('click',()=>{
+  const amt=Number(gel('rec-amt').value);if(!amt){showToast('Enter amount');return;}
+  const entry={proj:gel('rec-proj').value,amt,method:gel('rec-method').value,txn:gel('rec-txn').value,date:new Date().toLocaleDateString()};
   donHistory.unshift(entry);
-  const hl=document.getElementById('don-hist-list');
+  const hl=gel('don-hist-list');
   hl.innerHTML=donHistory.map(d=>`<div class="dh-item"><div style="flex:1;"><div class="da">${d.proj}</div><div class="db">${d.method} · ${d.date}${d.txn?' · TXN: '+d.txn:''}</div></div><div style="font-weight:700;color:var(--p2);">₹${d.amt}</div></div>`).join('');
   closeSheet('donate');showToast('💝 JazakAllah Khair! Donation recorded!');
   addNotification('💝','#fef3c7','Donation Recorded','₹'+amt+' for '+entry.proj);
 });
 
 // PAYMENT SETTINGS
-document.getElementById('ps-qr-file').addEventListener('change',function(){
+gel('ps-qr-file').addEventListener('change',function(){
   if(!this.files[0])return;
-  const r=new FileReader();r.onload=e=>{paySettings.qr=e.target.result;document.getElementById('ps-qr-preview').innerHTML=`<img src="${e.target.result}" style="max-width:120px;border-radius:var(--r8);margin-top:6px;">`;};r.readAsDataURL(this.files[0]);
+  const r=new FileReader();r.onload=e=>{paySettings.qr=e.target.result;gel('ps-qr-preview').innerHTML=`<img src="${e.target.result}" style="max-width:120px;border-radius:var(--r8);margin-top:6px;">`;};r.readAsDataURL(this.files[0]);
 });
-document.getElementById('paysettings-sub').addEventListener('click',()=>{
-  paySettings.holder=document.getElementById('ps-holder').value||paySettings.holder;
-  paySettings.acc=document.getElementById('ps-acc').value;paySettings.ifsc=document.getElementById('ps-ifsc').value;
-  const newUpi=document.getElementById('ps-upi').value.trim();if(newUpi){paySettings.upi=newUpi;document.getElementById('upi-id-display').textContent=newUpi;document.getElementById('qr-upi-label').textContent=newUpi;}
-  if(paySettings.qr){document.getElementById('qr-display').innerHTML=`<img src="${paySettings.qr}" style="max-width:160px;border-radius:var(--r8);"><p style="font-size:.72rem;color:var(--t3);margin-top:8px;">${paySettings.upi}</p>`;}
+gel('paysettings-sub').addEventListener('click',()=>{
+  paySettings.holder=gel('ps-holder').value||paySettings.holder;
+  paySettings.acc=gel('ps-acc').value;paySettings.ifsc=gel('ps-ifsc').value;
+  const newUpi=gel('ps-upi').value.trim();if(newUpi){paySettings.upi=newUpi;gel('upi-id-display').textContent=newUpi;gel('qr-upi-label').textContent=newUpi;}
+  if(paySettings.qr){gel('qr-display').innerHTML=`<img src="${paySettings.qr}" style="max-width:160px;border-radius:var(--r8);"><p style="font-size:.72rem;color:var(--t3);margin-top:8px;">${paySettings.upi}</p>`;}
   closeSheet('paysettings');showToast('✅ Payment settings saved!');
 });
 
@@ -2041,7 +2048,7 @@ const FEED_SEED=[
 feedPosts=[...FEED_SEED];
 
 function renderFeed(posts){
-  const el=document.getElementById('feed-list');if(!el)return;
+  const el=gel('feed-list');if(!el)return;
   if(!posts.length){el.innerHTML='<div class="empty">No posts yet. Share something!</div>';return;}
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
   el.innerHTML=posts.map(p=>`
@@ -2060,30 +2067,30 @@ function renderFeed(posts){
       </div>
     </div>`).join('');
 }
-document.getElementById('feed-list').addEventListener('click',e=>{
+gel('feed-list').addEventListener('click',e=>{
   const lb=e.target.closest('[data-like]');if(lb)toggleLike(Number(lb.dataset.like));
   const cb=e.target.closest('[data-comment]');if(cb)openComments(Number(cb.dataset.comment));
   const sb=e.target.closest('[data-share-post]');if(sb)sharePostFn(Number(sb.dataset.sharePost));
-  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));document.getElementById('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
+  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
 });
-function toggleLike(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.liked=!p.liked;p.likes+=p.liked?1:-1;const lc=document.getElementById('lc-'+id);if(lc)lc.textContent=p.likes;const btn=document.querySelector(`#pc-${id} [data-like]`);if(btn){btn.innerHTML=(p.liked?'❤️':'♡')+` <span id="lc-${id}">${p.likes}</span>`;btn.classList.toggle('lk',p.liked);}}
-function sharePostFn(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.shared=(p.shared||0)+1;const sc=document.getElementById('sc-'+id);if(sc)sc.textContent=p.shared;shareLink(p.text.slice(0,80)+'...');}
+function toggleLike(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.liked=!p.liked;p.likes+=p.liked?1:-1;const lc=gel('lc-'+id);if(lc)lc.textContent=p.likes;const btn=document.querySelector(`#pc-${id} [data-like]`);if(btn){btn.innerHTML=(p.liked?'❤️':'♡')+` <span id="lc-${id}">${p.likes}</span>`;btn.classList.toggle('lk',p.liked);}}
+function sharePostFn(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.shared=(p.shared||0)+1;const sc=gel('sc-'+id);if(sc)sc.textContent=p.shared;shareLink(p.text.slice(0,80)+'...');}
 function openComments(id){
   currentPostId=id;const p=feedPosts.find(x=>x.id===id);if(!p)return;
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
-  document.getElementById('cmt-list').innerHTML=p.comments.length?p.comments.map(c=>`<div class="cmt" id="cmt-${c.id}"><div class="avi sm" style="background:${avC(c.name)};">${avI(c.name)}</div><div class="cmt-body"><h6>${c.name}</h6><p>${c.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${c.id}" data-pid="${id}">🗑️</button>`:''}</div>`).join(''):'<div style="padding:14px;text-align:center;color:var(--t4);font-size:.82rem;">No comments yet. Be the first!</div>';
+  gel('cmt-list').innerHTML=p.comments.length?p.comments.map(c=>`<div class="cmt" id="cmt-${c.id}"><div class="avi sm" style="background:${avC(c.name)};">${avI(c.name)}</div><div class="cmt-body"><h6>${c.name}</h6><p>${c.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${c.id}" data-pid="${id}">🗑️</button>`:''}</div>`).join(''):'<div style="padding:14px;text-align:center;color:var(--t4);font-size:.82rem;">No comments yet. Be the first!</div>';
   openSheet('comment');
 }
-document.getElementById('cmt-list').addEventListener('click',e=>{const db=e.target.closest('[data-cmt-del]');if(!db)return;const cid=Number(db.dataset.cmtDel),pid=Number(db.dataset.pid);const p=feedPosts.find(x=>x.id===pid);if(p){p.comments=p.comments.filter(c=>c.id!==cid);}db.closest('.cmt')?.remove();const cc=document.getElementById('cc-'+pid);if(cc)cc.textContent=(p?.comments.length||0);showToast('Comment deleted!');});
-document.getElementById('cmt-send').addEventListener('click',submitComment);
-document.getElementById('cmt-inp-txt').addEventListener('keypress',e=>{if(e.key==='Enter')submitComment();});
-function submitComment(){const inp=document.getElementById('cmt-inp-txt'),txt=inp.value.trim();if(!txt||!currentPostId)return;const p=feedPosts.find(x=>x.id===currentPostId);if(!p)return;const isAdm=CU&&(CU.isAdmin||CU.role==='admin');const nc={id:Date.now(),name:CU?.name||'You',text:txt};p.comments.push(nc);document.getElementById('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=document.getElementById('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
+gel('cmt-list').addEventListener('click',e=>{const db=e.target.closest('[data-cmt-del]');if(!db)return;const cid=Number(db.dataset.cmtDel),pid=Number(db.dataset.pid);const p=feedPosts.find(x=>x.id===pid);if(p){p.comments=p.comments.filter(c=>c.id!==cid);}db.closest('.cmt')?.remove();const cc=gel('cc-'+pid);if(cc)cc.textContent=(p?.comments.length||0);showToast('Comment deleted!');});
+gel('cmt-send').addEventListener('click',submitComment);
+gel('cmt-inp-txt').addEventListener('keypress',e=>{if(e.key==='Enter')submitComment();});
+function submitComment(){const inp=gel('cmt-inp-txt'),txt=inp.value.trim();if(!txt||!currentPostId)return;const p=feedPosts.find(x=>x.id===currentPostId);if(!p)return;const isAdm=CU&&(CU.isAdmin||CU.role==='admin');const nc={id:Date.now(),name:CU?.name||'You',text:txt};p.comments.push(nc);gel('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=gel('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
 
 // Post photos
-document.getElementById('post-img-inp').addEventListener('change',function(){postImgs=[];const prev=document.getElementById('post-prev');prev.innerHTML='';Array.from(this.files).slice(0,4).forEach(f=>{const r=new FileReader();r.onload=e=>{postImgs.push(e.target.result);const w=document.createElement('div');w.className='prev-w';const img=document.createElement('img');img.src=e.target.result;const rm=document.createElement('button');rm.className='prev-rm';rm.textContent='✕';rm.onclick=()=>{w.remove();postImgs=postImgs.filter(x=>x!==e.target.result);};w.appendChild(img);w.appendChild(rm);prev.appendChild(w);};r.readAsDataURL(f);});});
+gel('post-img-inp').addEventListener('change',function(){postImgs=[];const prev=gel('post-prev');prev.innerHTML='';Array.from(this.files).slice(0,4).forEach(f=>{const r=new FileReader();r.onload=e=>{postImgs.push(e.target.result);const w=document.createElement('div');w.className='prev-w';const img=document.createElement('img');img.src=e.target.result;const rm=document.createElement('button');rm.className='prev-rm';rm.textContent='✕';rm.onclick=()=>{w.remove();postImgs=postImgs.filter(x=>x!==e.target.result);};w.appendChild(img);w.appendChild(rm);prev.appendChild(w);};r.readAsDataURL(f);});});
 
 // Location in post — fixed with high accuracy + reverse geocode
-document.getElementById('loc-post-btn').addEventListener('click',function(){
+gel('loc-post-btn').addEventListener('click',function(){
   const btn=this;
   if(!navigator.geolocation){showToast('Location not supported on this device');return;}
   btn.textContent='📍 Getting...';btn.disabled=true;
@@ -2091,8 +2098,8 @@ document.getElementById('loc-post-btn').addEventListener('click',function(){
     pos=>{
       const{latitude:la,longitude:lo}=pos.coords;
       const locText=`📍 ${la.toFixed(4)}, ${lo.toFixed(4)}`;
-      const cur=document.getElementById('post-txt').value;
-      document.getElementById('post-txt').value=(cur?cur+'\n':'')+locText;
+      const cur=gel('post-txt').value;
+      gel('post-txt').value=(cur?cur+'\n':'')+locText;
       showToast('📍 Location added to post!');
       btn.textContent='📍 Location ✓';btn.disabled=false;
       // Try to get city name
@@ -2100,8 +2107,8 @@ document.getElementById('loc-post-btn').addEventListener('click',function(){
         .then(r=>r.json()).then(d=>{
           const city=d.address?.city||d.address?.town||d.address?.county||'';
           if(city){
-            const prev=document.getElementById('post-txt').value;
-            document.getElementById('post-txt').value=prev.replace(locText,`📍 ${city}`);
+            const prev=gel('post-txt').value;
+            gel('post-txt').value=prev.replace(locText,`📍 ${city}`);
           }
         }).catch(()=>{});
     },
@@ -2114,10 +2121,10 @@ document.getElementById('loc-post-btn').addEventListener('click',function(){
   );
 });
 
-document.getElementById('post-submit-btn').addEventListener('click',async()=>{
-  const txt=document.getElementById('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
+gel('post-submit-btn').addEventListener('click',async()=>{
+  const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
   const np={id:Date.now(),name:CU?.name||'You',city:CU?.city||'',text:txt,time:'Just now',likes:0,liked:false,comments:[],shared:0,imgs:[...postImgs]};
-  feedPosts.unshift(np);renderFeed(feedPosts);document.getElementById('post-txt').value='';postImgs=[];document.getElementById('post-prev').innerHTML='';
+  feedPosts.unshift(np);renderFeed(feedPosts);gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
   showToast('Post shared!');
   addNotification('📰','#f0fdf4','Post Shared','Your post is now live in Community Feed');
   if(Notification.permission==='granted'){try{new Notification('Adnani Connected','Your post is live!');}catch(e){}}
@@ -2130,52 +2137,52 @@ async function loadPosts(){try{const r=await fetch(SERVER+'/api/posts',{headers:
 // ═══════════════════════════════════
 function renderAdmin(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');if(!isAdm)return;
-  document.getElementById('at').textContent=MEMBERS.length;document.getElementById('ao').textContent=MEMBERS.filter(m=>m.online).length;document.getElementById('ap-c').textContent=PENDING.length;
-  document.getElementById('adm-pend').innerHTML=PENDING.length?PENDING.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}</h4><p>${m.phone} · ${m.city} · ${m.requested}</p></div><div class="pub"><button class="btn bs" style="font-size:.66rem;padding:3px 8px;" data-approve="${m.id}">✓ Approve</button><button class="btn br" style="font-size:.66rem;padding:3px 8px;" data-reject-p="${m.id}">✕ Reject</button></div></div>`).join(''):'<div class="empty">No pending approvals ✅</div>';
-  document.getElementById('adm-all').innerHTML=MEMBERS.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}${m.isAdmin?'<span class="mbadge">Admin</span>':''}</h4><p style="direction:ltr;">${m.phone} · ${m.city}</p></div><div class="pub"><button class="btn bo" style="font-size:.63rem;padding:3px 7px;" data-ch="${m.id}" data-chn="${m.name}">Chat</button><button class="edit-inline" data-adm-edit-mem="${m.id}">Edit</button><button class="del-btn" data-adm-del-mem="${m.id}">Del</button></div></div>`).join('');
-  document.getElementById('adm-events').innerHTML=EVENTS.map(e=>`<div class="pu"><div class="pui"><h4>${e.name}</h4><p>${e.day} ${e.month} · ${e.place} · ${eventAttend[e.id]?.count||0} attending</p></div><div class="pub"><button class="edit-inline" data-adm-edit-ev="${e.id}">Edit</button><button class="del-btn" data-adm-del-ev="${e.id}">Del</button></div></div>`).join('');
-  document.getElementById('adm-biz').innerHTML=BUSINESSES.map(b=>`<div class="pu"><div class="pui"><h4>${b.name}</h4><p>${b.type} · ${b.city}</p></div><div class="pub"><button class="edit-inline" data-adm-edit-biz="${b.id}">Edit</button><button class="del-btn" data-adm-del-biz="${b.id}">Del</button></div></div>`).join('');
-  document.getElementById('adm-rishta').innerHTML=RISHTA.map(r=>`<div class="pu"><div class="pui"><h4>${r.name}</h4><p>${r.type==='m'?'Male':'Female'} · ${r.city} · Age ${r.age}</p></div><div class="pub"><button class="edit-inline" data-adm-edit-rishta="${r.id}">Edit</button><button class="del-btn" data-adm-del-rishta="${r.id}">Del</button></div></div>`).join('');
-  document.getElementById('adm-feed').innerHTML=feedPosts.slice(0,5).map(p=>`<div class="pu"><div class="pui"><h4>${p.name}</h4><p style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.text.slice(0,55)}...</p></div><div class="pub"><button class="del-btn" data-adm-del-post="${p.id}">🗑️ Delete</button></div></div>`).join('');
+  gel('at').textContent=MEMBERS.length;gel('ao').textContent=MEMBERS.filter(m=>m.online).length;gel('ap-c').textContent=PENDING.length;
+  gel('adm-pend').innerHTML=PENDING.length?PENDING.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}</h4><p>${m.phone} · ${m.city} · ${m.requested}</p></div><div class="pub"><button class="btn bs" style="font-size:.66rem;padding:3px 8px;" data-approve="${m.id}">✓ Approve</button><button class="btn br" style="font-size:.66rem;padding:3px 8px;" data-reject-p="${m.id}">✕ Reject</button></div></div>`).join(''):'<div class="empty">No pending approvals ✅</div>';
+  gel('adm-all').innerHTML=MEMBERS.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}${m.isAdmin?'<span class="mbadge">Admin</span>':''}</h4><p style="direction:ltr;">${m.phone} · ${m.city}</p></div><div class="pub"><button class="btn bo" style="font-size:.63rem;padding:3px 7px;" data-ch="${m.id}" data-chn="${m.name}">Chat</button><button class="edit-inline" data-adm-edit-mem="${m.id}">Edit</button><button class="del-btn" data-adm-del-mem="${m.id}">Del</button></div></div>`).join('');
+  gel('adm-events').innerHTML=EVENTS.map(e=>`<div class="pu"><div class="pui"><h4>${e.name}</h4><p>${e.day} ${e.month} · ${e.place} · ${eventAttend[e.id]?.count||0} attending</p></div><div class="pub"><button class="edit-inline" data-adm-edit-ev="${e.id}">Edit</button><button class="del-btn" data-adm-del-ev="${e.id}">Del</button></div></div>`).join('');
+  gel('adm-biz').innerHTML=BUSINESSES.map(b=>`<div class="pu"><div class="pui"><h4>${b.name}</h4><p>${b.type} · ${b.city}</p></div><div class="pub"><button class="edit-inline" data-adm-edit-biz="${b.id}">Edit</button><button class="del-btn" data-adm-del-biz="${b.id}">Del</button></div></div>`).join('');
+  gel('adm-rishta').innerHTML=RISHTA.map(r=>`<div class="pu"><div class="pui"><h4>${r.name}</h4><p>${r.type==='m'?'Male':'Female'} · ${r.city} · Age ${r.age}</p></div><div class="pub"><button class="edit-inline" data-adm-edit-rishta="${r.id}">Edit</button><button class="del-btn" data-adm-del-rishta="${r.id}">Del</button></div></div>`).join('');
+  gel('adm-feed').innerHTML=feedPosts.slice(0,5).map(p=>`<div class="pu"><div class="pui"><h4>${p.name}</h4><p style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.text.slice(0,55)}...</p></div><div class="pub"><button class="del-btn" data-adm-del-post="${p.id}">🗑️ Delete</button></div></div>`).join('');
 }
-document.getElementById('adm-pend').addEventListener('click',e=>{
+gel('adm-pend').addEventListener('click',e=>{
   const ab=e.target.closest('[data-approve]'),rb=e.target.closest('[data-reject-p]');
-  if(ab){const id=Number(ab.dataset.approve);PENDING=PENDING.filter(m=>m.id!==id);ab.closest('.pu')?.remove();document.getElementById('ap-c').textContent=PENDING.length;document.getElementById('pend-count').textContent=PENDING.length;showToast('✅ Member approved!');addNotification('✅','#dcfce7','Member Approved','New member has been approved');}
+  if(ab){const id=Number(ab.dataset.approve);PENDING=PENDING.filter(m=>m.id!==id);ab.closest('.pu')?.remove();gel('ap-c').textContent=PENDING.length;gel('pend-count').textContent=PENDING.length;showToast('✅ Member approved!');addNotification('✅','#dcfce7','Member Approved','New member has been approved');}
   if(rb){PENDING=PENDING.filter(m=>m.id!==Number(rb.dataset.rejectP));rb.closest('.pu')?.remove();}
 });
-document.getElementById('adm-all').addEventListener('click',e=>{
+gel('adm-all').addEventListener('click',e=>{
   const cb=e.target.closest('[data-ch]');if(cb)openChat(Number(cb.dataset.ch),cb.dataset.chn,'direct');
   const eb=e.target.closest('[data-adm-edit-mem]');if(eb)editMember(Number(eb.dataset.admEditMem));
   const db=e.target.closest('[data-adm-del-mem]');if(db&&confirm('Delete member?')){MEMBERS=MEMBERS.filter(m=>m.id!==Number(db.dataset.admDelMem));db.closest('.pu')?.remove();renderAdmin();}
 });
-document.getElementById('adm-events').addEventListener('click',e=>{
-  const eb=e.target.closest('[data-adm-edit-ev]');if(eb){const ev=EVENTS.find(x=>x.id===Number(eb.dataset.admEditEv));if(ev){document.getElementById('ev-nm').value=ev.name;document.getElementById('ev-venue').value=ev.place;editCtx={type:'event',id:ev.id};openSheet('event');}}
+gel('adm-events').addEventListener('click',e=>{
+  const eb=e.target.closest('[data-adm-edit-ev]');if(eb){const ev=EVENTS.find(x=>x.id===Number(eb.dataset.admEditEv));if(ev){gel('ev-nm').value=ev.name;gel('ev-venue').value=ev.place;editCtx={type:'event',id:ev.id};openSheet('event');}}
   const db=e.target.closest('[data-adm-del-ev]');if(db&&confirm('Delete event?')){EVENTS.splice(EVENTS.findIndex(x=>x.id===Number(db.dataset.admDelEv)),1);renderAdmin();renderEvents();showToast('Event deleted.');}
 });
-document.getElementById('adm-biz').addEventListener('click',e=>{
-  const eb=e.target.closest('[data-adm-edit-biz]');if(eb){const b=BUSINESSES.find(x=>x.id===Number(eb.dataset.admEditBiz));if(b){document.getElementById('b-nm').value=b.name;document.getElementById('b-desc').value=b.desc;document.getElementById('b-ph').value=b.phone;document.getElementById('b-city').value=b.city;editCtx={type:'biz',id:b.id};openSheet('biz');}}
+gel('adm-biz').addEventListener('click',e=>{
+  const eb=e.target.closest('[data-adm-edit-biz]');if(eb){const b=BUSINESSES.find(x=>x.id===Number(eb.dataset.admEditBiz));if(b){gel('b-nm').value=b.name;gel('b-desc').value=b.desc;gel('b-ph').value=b.phone;gel('b-city').value=b.city;editCtx={type:'biz',id:b.id};openSheet('biz');}}
   const db=e.target.closest('[data-adm-del-biz]');if(db&&confirm('Delete?')){BUSINESSES.splice(BUSINESSES.findIndex(x=>x.id===Number(db.dataset.admDelBiz)),1);renderAdmin();renderBusiness();showToast('Deleted.');}
 });
-document.getElementById('adm-rishta').addEventListener('click',e=>{
-  const er=e.target.closest('[data-adm-edit-rishta]');if(er){const r=RISHTA.find(x=>x.id===Number(er.dataset.admEditRishta));if(r){document.getElementById('r-nm').value=r.name;editCtx={type:'rishta',id:r.id};openSheet('rishta');}}
+gel('adm-rishta').addEventListener('click',e=>{
+  const er=e.target.closest('[data-adm-edit-rishta]');if(er){const r=RISHTA.find(x=>x.id===Number(er.dataset.admEditRishta));if(r){gel('r-nm').value=r.name;editCtx={type:'rishta',id:r.id};openSheet('rishta');}}
   const dr=e.target.closest('[data-adm-del-rishta]');if(dr&&confirm('Delete?')){RISHTA.splice(RISHTA.findIndex(x=>x.id===Number(dr.dataset.admDelRishta)),1);renderAdmin();renderRishta();showToast('Deleted.');}
 });
-document.getElementById('adm-feed').addEventListener('click',e=>{const db=e.target.closest('[data-adm-del-post]');if(db&&confirm('Delete post?')){const id=Number(db.dataset.admDelPost);feedPosts=feedPosts.filter(p=>p.id!==id);document.getElementById('pc-'+id)?.remove();renderAdmin();showToast('Post deleted.');}});
-document.getElementById('adm-add-mem').addEventListener('click',()=>document.getElementById('add-member-btn').click());
-document.getElementById('adm-add-ev').addEventListener('click',()=>document.getElementById('addevent-btn').click());
-document.getElementById('adm-add-biz').addEventListener('click',()=>document.getElementById('addbiz-btn').click());
-document.getElementById('adm-add-rishta').addEventListener('click',()=>document.getElementById('addrishta-btn').click());
+gel('adm-feed').addEventListener('click',e=>{const db=e.target.closest('[data-adm-del-post]');if(db&&confirm('Delete post?')){const id=Number(db.dataset.admDelPost);feedPosts=feedPosts.filter(p=>p.id!==id);gel('pc-'+id)?.remove();renderAdmin();showToast('Post deleted.');}});
+gel('adm-add-mem').addEventListener('click',()=>gel('add-member-btn').click());
+gel('adm-add-ev').addEventListener('click',()=>gel('addevent-btn').click());
+gel('adm-add-biz').addEventListener('click',()=>gel('addbiz-btn').click());
+gel('adm-add-rishta').addEventListener('click',()=>gel('addrishta-btn').click());
 
 // ═══════════════════════════════════
 // APPROVE MEMBERS (all approved members)
 // ═══════════════════════════════════
 function renderApproveList(){
-  document.getElementById('pend-count').textContent=PENDING.length;
-  document.getElementById('approve-list').innerHTML=PENDING.length?PENDING.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}</h4><p>${m.phone} · ${m.city} · ${m.requested}</p></div><div class="pub"><button class="btn bs" style="font-size:.7rem;padding:5px 9px;" data-appv="${m.id}">✓ Approve</button><button class="btn br" style="font-size:.7rem;padding:5px 9px;" data-appv-rej="${m.id}">✕</button></div></div>`).join(''):'<div class="empty">No pending approvals ✅</div>';
+  gel('pend-count').textContent=PENDING.length;
+  gel('approve-list').innerHTML=PENDING.length?PENDING.map(m=>`<div class="pu">${mkAvi(m.name,'md')}<div class="pui"><h4>${m.name}</h4><p>${m.phone} · ${m.city} · ${m.requested}</p></div><div class="pub"><button class="btn bs" style="font-size:.7rem;padding:5px 9px;" data-appv="${m.id}">✓ Approve</button><button class="btn br" style="font-size:.7rem;padding:5px 9px;" data-appv-rej="${m.id}">✕</button></div></div>`).join(''):'<div class="empty">No pending approvals ✅</div>';
 }
-document.getElementById('approve-list').addEventListener('click',e=>{
-  const ab=e.target.closest('[data-appv]');if(ab){const id=Number(ab.dataset.appv);PENDING=PENDING.filter(m=>m.id!==id);ab.closest('.pu')?.remove();document.getElementById('pend-count').textContent=PENDING.length;showToast('✅ Member approved!');addNotification('✅','#dcfce7','You approved a member','New member can now access the app');}
-  const rb=e.target.closest('[data-appv-rej]');if(rb){PENDING=PENDING.filter(m=>m.id!==Number(rb.dataset.appvRej));rb.closest('.pu')?.remove();document.getElementById('pend-count').textContent=PENDING.length;}
+gel('approve-list').addEventListener('click',e=>{
+  const ab=e.target.closest('[data-appv]');if(ab){const id=Number(ab.dataset.appv);PENDING=PENDING.filter(m=>m.id!==id);ab.closest('.pu')?.remove();gel('pend-count').textContent=PENDING.length;showToast('✅ Member approved!');addNotification('✅','#dcfce7','You approved a member','New member can now access the app');}
+  const rb=e.target.closest('[data-appv-rej]');if(rb){PENDING=PENDING.filter(m=>m.id!==Number(rb.dataset.appvRej));rb.closest('.pu')?.remove();gel('pend-count').textContent=PENDING.length;}
 });
 
 // ═══════════════════════════════════
@@ -2189,16 +2196,16 @@ function openChat(id,name,type){
     return;
   }
   activeChatId=id;activeChatName=name;
-  setAvi(document.getElementById('cw-av'),name);
-  document.getElementById('cw-nm').textContent=name;
+  setAvi(gel('cw-av'),name);
+  gel('cw-nm').textContent=name;
   const m=MEMBERS.find(x=>x.id===id)||CHATS.find(x=>x.id===id);
-  document.getElementById('cw-sub').textContent=(m?.online?'● Online':'○ Offline');
+  gel('cw-sub').textContent=(m?.online?'● Online':'○ Offline');
   if(!chatMsgs[id])chatMsgs[id]=[{text:'Assalamu Alaikum!',sent:false,time:'10:30'},{text:'Wa Alaikum Assalam! Alhamdulillah.',sent:true,time:'10:31'}];
-  renderMsgs(id);document.getElementById('cwin').classList.add('on');
+  renderMsgs(id);gel('cwin').classList.add('on');
 }
-function renderMsgs(id){const msgs=chatMsgs[id]||[];document.getElementById('cw-body').innerHTML=msgs.map(m=>`<div class="bub ${m.sent?'out':'in'}">${m.img?`<img src="${m.img}" alt="">`:''}${m.text?`<span>${m.text}</span>`:''}<div class="bt">${m.time}</div></div>`).join('');const b=document.getElementById('cw-body');b.scrollTop=b.scrollHeight;}
+function renderMsgs(id){const msgs=chatMsgs[id]||[];gel('cw-body').innerHTML=msgs.map(m=>`<div class="bub ${m.sent?'out':'in'}">${m.img?`<img src="${m.img}" alt="">`:''}${m.text?`<span>${m.text}</span>`:''}<div class="bt">${m.time}</div></div>`).join('');const b=gel('cw-body');b.scrollTop=b.scrollHeight;}
 function sendMsg(){
-  const inp=document.getElementById('cw-inp'),txt=inp.value.trim();
+  const inp=gel('cw-inp'),txt=inp.value.trim();
   if(!txt||!activeChatId)return;
   const now=new Date(),time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   chatMsgs[activeChatId].push({text:txt,sent:true,time});
@@ -2213,29 +2220,29 @@ function sendMsg(){
     addNotification('💬','#dbeafe','Message from '+activeChatName,reply.slice(0,40));
   },1400);
 }
-document.getElementById('cw-send').addEventListener('click',sendMsg);
-document.getElementById('cw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendMsg();});
-document.getElementById('cw-back').addEventListener('click',()=>{document.getElementById('cwin').classList.remove('on');activeChatId=null;});
-document.getElementById('cw-call').addEventListener('click',startCall);
-document.getElementById('cw-vid').addEventListener('click',()=>showToast('Video calling...'));
-document.getElementById('cw-mic').addEventListener('click',function(){this.textContent=this.textContent==='🎤'?'🔇':'🎤';showToast(this.textContent==='🔇'?'Mic off':'Mic on');});
-['cw-file','cw-cam'].forEach(id=>document.getElementById(id).addEventListener('change',function(){if(!this.files[0])return;const r=new FileReader();r.onload=e=>{chatMsgs[activeChatId].push({img:e.target.result,text:'',sent:true,time:'Now'});renderMsgs(activeChatId);};r.readAsDataURL(this.files[0]);}));
-document.getElementById('cw-av').addEventListener('dblclick',()=>{const m=MEMBERS.find(x=>x.id===activeChatId);if(m)showMemberProfile(m.id);});
+gel('cw-send').addEventListener('click',sendMsg);
+gel('cw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendMsg();});
+gel('cw-back').addEventListener('click',()=>{gel('cwin').classList.remove('on');activeChatId=null;});
+gel('cw-call').addEventListener('click',startCall);
+gel('cw-vid').addEventListener('click',()=>showToast('Video calling...'));
+gel('cw-mic').addEventListener('click',function(){this.textContent=this.textContent==='🎤'?'🔇':'🎤';showToast(this.textContent==='🔇'?'Mic off':'Mic on');});
+['cw-file','cw-cam'].forEach(id=>{const _e=gel(id);if(_e)_e.addEventListener('change',function(){if(!this.files[0])return;const r=new FileReader();r.onload=e=>{chatMsgs[activeChatId].push({img:e.target.result,text:'',sent:true,time:'Now'});renderMsgs(activeChatId);};r.readAsDataURL(this.files[0]);});});
+gel('cw-av').addEventListener('dblclick',()=>{const m=MEMBERS.find(x=>x.id===activeChatId);if(m)showMemberProfile(m.id);});
 
 // ═══════════════════════════════════
 // CALL
 // ═══════════════════════════════════
-function startCall(){const cov=document.getElementById('cov');cov.classList.add('on');setAvi(document.getElementById('cov-av'),activeChatName||'User');document.getElementById('cov-nm').textContent=activeChatName||'—';document.getElementById('cov-st').textContent='Calling...';let secs=0;clearInterval(callTimer);setTimeout(()=>{document.getElementById('cov-st').textContent='Connected • 0:00';callTimer=setInterval(()=>{secs++;document.getElementById('cov-st').textContent=`Connected • ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;},1000);},2000);}
-document.getElementById('end-cb').addEventListener('click',()=>{clearInterval(callTimer);document.getElementById('cov').classList.remove('on');});
-document.getElementById('mic-cb').addEventListener('click',function(){this.textContent=this.textContent==='🎤'?'🔇':'🎤';});
+function startCall(){const cov=gel('cov');cov.classList.add('on');setAvi(gel('cov-av'),activeChatName||'User');gel('cov-nm').textContent=activeChatName||'—';gel('cov-st').textContent='Calling...';let secs=0;clearInterval(callTimer);setTimeout(()=>{gel('cov-st').textContent='Connected • 0:00';callTimer=setInterval(()=>{secs++;gel('cov-st').textContent=`Connected • ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;},1000);},2000);}
+gel('end-cb').addEventListener('click',()=>{clearInterval(callTimer);gel('cov').classList.remove('on');});
+gel('mic-cb').addEventListener('click',function(){this.textContent=this.textContent==='🎤'?'🔇':'🎤';});
 
 // ═══════════════════════════════════
 // SHEETS
 // ═══════════════════════════════════
-function openSheet(n){const el=document.getElementById('so-'+n);if(el)el.classList.add('on');}
-function closeSheet(n){const el=document.getElementById('so-'+n);if(el)el.classList.remove('on');}
+function openSheet(n){const el=gel('so-'+n);if(el)el.classList.add('on');}
+function closeSheet(n){const el=gel('so-'+n);if(el)el.classList.remove('on');}
 document.querySelectorAll('.shx').forEach(btn=>btn.addEventListener('click',()=>closeSheet(btn.dataset.close)));
-['biz','rishta','event','donate','comment','group','paysettings','addmember'].forEach(n=>{const el=document.getElementById('so-'+n);if(!el)return;el.addEventListener('click',e=>{if(e.target===el)closeSheet(n);});});
+['biz','rishta','event','donate','comment','group','paysettings','addmember'].forEach(n=>{const el=gel('so-'+n);if(!el)return;el.addEventListener('click',e=>{if(e.target===el)closeSheet(n);});});
 
 // ═══════════════════════════════════
 // UTILS
@@ -2265,12 +2272,12 @@ async function reqPerms(){
 }
 function shareApp(){if(navigator.share)navigator.share({title:'Adnani Connected',text:'Join All India Muslim Halwai Biradari Committee App!',url:window.location.href}).catch(()=>{});else{navigator.clipboard?.writeText(window.location.href).then(()=>showToast('Link copied!')).catch(()=>showToast('Share: '+window.location.href));}}
 function shareLink(text){if(navigator.share)navigator.share({title:'Adnani Connected',text,url:window.location.href}).catch(()=>{});else navigator.clipboard?.writeText(text+' '+window.location.href).then(()=>showToast('Copied!')).catch(()=>{});}
-function updateOnlineCount(){const c=MEMBERS.filter(m=>m.online).length+Math.floor(Math.random()*2);['oc','st-o','ao'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=c;});}
+function updateOnlineCount(){const c=MEMBERS.filter(m=>m.online).length+Math.floor(Math.random()*2);['oc','st-o','ao'].forEach(id=>{const e=gel(id);if(e)e.textContent=c;});}
 
 // Online strip
-function renderOnline(){const el=document.getElementById('ostrip');if(!el)return;el.innerHTML=MEMBERS.filter(m=>m.online).map(m=>`<div class="om" data-oid="${m.id}" data-onm="${m.name}"><div class="ring"><div class="avi" style="background:${avC(m.name)};width:100%;height:100%;font-size:.76rem;border:2px solid var(--s1);">${avI(m.name)}</div></div><span>${m.name.split(' ')[0]}</span></div>`).join('');}
-document.getElementById('ostrip').addEventListener('click',e=>{const o=e.target.closest('.om');if(o)openChat(Number(o.dataset.oid),o.dataset.onm,'direct');});
-document.getElementById('ostrip').addEventListener('dblclick',e=>{const o=e.target.closest('.om');if(o)showMemberProfile(Number(o.dataset.oid));});
+function renderOnline(){const el=gel('ostrip');if(!el)return;el.innerHTML=MEMBERS.filter(m=>m.online).map(m=>`<div class="om" data-oid="${m.id}" data-onm="${m.name}"><div class="ring"><div class="avi" style="background:${avC(m.name)};width:100%;height:100%;font-size:.76rem;border:2px solid var(--s1);">${avI(m.name)}</div></div><span>${m.name.split(' ')[0]}</span></div>`).join('');}
+gel('ostrip').addEventListener('click',e=>{const o=e.target.closest('.om');if(o)openChat(Number(o.dataset.oid),o.dataset.onm,'direct');});
+gel('ostrip').addEventListener('dblclick',e=>{const o=e.target.closest('.om');if(o)showMemberProfile(Number(o.dataset.oid));});
 
 // ═══════════════════════════════════
 // INIT
@@ -2282,7 +2289,7 @@ function initApp(){
   loadAyahs(1); // Load Al-Fatihah by default
   setInterval(updateOnlineCount,15000);
   // Check server for any pending users
-  fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}}).then(r=>r.json()).then(d=>{if(d.pending&&d.pending.length){d.pending.forEach(p=>{if(!PENDING.find(x=>x.phone===p.phone))PENDING.push({id:p.id||Date.now(),name:p.name||'New User',city:p.city||'Unknown',phone:p.phone||'—',requested:'Recently'});});document.getElementById('pend-count').textContent=PENDING.length;}}).catch(()=>{});
+  fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}}).then(r=>r.json()).then(d=>{if(d.pending&&d.pending.length){d.pending.forEach(p=>{if(!PENDING.find(x=>x.phone===p.phone))PENDING.push({id:p.id||Date.now(),name:p.name||'New User',city:p.city||'Unknown',phone:p.phone||'—',requested:'Recently'});});gel('pend-count').textContent=PENDING.length;}}).catch(()=>{});
 }
 
 // ═══════════════════════════════════════
@@ -2290,21 +2297,21 @@ function initApp(){
 // ═══════════════════════════════════════
 function initTerms(){
   if(localStorage.getItem('tc_accepted')==='1'){
-    document.getElementById('terms-overlay').classList.add('done');
+    gel('terms-overlay').classList.add('done');
     return;
   }
   // Activate button only when both checkboxes checked
   ['tc-check1','tc-check2'].forEach(id=>{
-    document.getElementById(id).addEventListener('change',()=>{
-      const both=document.getElementById('tc-check1').checked&&document.getElementById('tc-check2').checked;
-      const btn=document.getElementById('terms-accept-btn');
+    gel(id)?.addEventListener('change',()=>{
+      const both=gel('tc-check1').checked&&gel('tc-check2').checked;
+      const btn=gel('terms-accept-btn');
       btn.classList.toggle('active',both);
     });
   });
-  document.getElementById('terms-accept-btn').addEventListener('click',function(){
+  gel('terms-accept-btn').addEventListener('click',function(){
     if(!this.classList.contains('active'))return;
     localStorage.setItem('tc_accepted','1');
-    document.getElementById('terms-overlay').classList.add('done');
+    gel('terms-overlay').classList.add('done');
   });
 }
 // Note: initTerms() is called inside DOMContentLoaded at bottom of file
@@ -2313,7 +2320,7 @@ function initTerms(){
 // DEVELOPER MODE (hidden tap to access demo)
 // ═══════════════════════════════════════
 let devTaps=0,devTimer=null;
-document.getElementById('dev-toggle')?.addEventListener('click',()=>{
+gel('dev-toggle')?.addEventListener('click',()=>{
   devTaps++;
   clearTimeout(devTimer);
   devTimer=setTimeout(()=>devTaps=0,2000);
@@ -2321,10 +2328,10 @@ document.getElementById('dev-toggle')?.addEventListener('click',()=>{
     devTaps=0;
     const box=document.createElement('div');
     box.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.9);color:#f0c040;padding:20px 24px;border-radius:12px;z-index:9999;text-align:center;font-size:.82rem;';
-    box.innerHTML=`<div style="font-size:.9rem;font-weight:700;margin-bottom:10px;">🔧 Developer Access</div>Admin: <strong>9415061063</strong> or <strong>9839060377</strong><br>Any number: OTP auto-generated<br><br><button onclick="this.parentElement.remove();document.getElementById('ph-inp').value='9415061063';document.getElementById('otp-dev-box').style.display='block';" style="background:#f0c040;color:#000;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;margin-top:8px;">Fill Admin Number</button><button onclick="this.parentElement.remove();" style="background:none;border:none;color:#f0c040;cursor:pointer;padding:8px 12px;font-size:.78rem;margin-left:4px;">✕</button>`;
+    box.innerHTML=`<div style="font-size:.9rem;font-weight:700;margin-bottom:10px;">🔧 Developer Access</div>Admin: <strong>9415061063</strong> or <strong>9839060377</strong><br>Any number: OTP auto-generated<br><br><button onclick="this.parentElement.remove();gel('ph-inp').value='9415061063';gel('otp-dev-box').style.display='block';" style="background:#f0c040;color:#000;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;margin-top:8px;">Fill Admin Number</button><button onclick="this.parentElement.remove();" style="background:none;border:none;color:#f0c040;cursor:pointer;padding:8px 12px;font-size:.78rem;margin-left:4px;">✕</button>`;
     document.body.appendChild(box);
     // Also show OTP box on OTP screen
-    const otpBox=document.getElementById('otp-dev-box');if(otpBox)otpBox.style.display='block';
+    const otpBox=gel('otp-dev-box');if(otpBox)otpBox.style.display='block';
   }
 });
 
@@ -2335,14 +2342,14 @@ let azanSettings={azan:true,vib:true,silent:false,tasbih:true};
 let prayerTimes={};
 let clockInterval=null;
 
-document.getElementById('azan-hb').addEventListener('click',()=>openAzan());
-document.getElementById('az-back').addEventListener('click',()=>document.getElementById('azan-panel').classList.remove('on'));
-document.getElementById('az-refresh').addEventListener('click',fetchPrayerTimes);
+gel('azan-hb').addEventListener('click',()=>openAzan());
+gel('az-back').addEventListener('click',()=>gel('azan-panel').classList.remove('on'));
+gel('az-refresh').addEventListener('click',fetchPrayerTimes);
 
 // Toggle switches
 ['tog-azan','tog-vib','tog-silent','tog-tasbih'].forEach((id,i)=>{
   const keys=['azan','vib','silent','tasbih'];
-  document.getElementById(id).addEventListener('click',function(){
+  gel(id)?.addEventListener('click',function(){
     azanSettings[keys[i]]=!azanSettings[keys[i]];
     this.classList.toggle('on',azanSettings[keys[i]]);
     showToast(azanSettings[keys[i]]?'ON':'OFF');
@@ -2350,7 +2357,7 @@ document.getElementById('az-refresh').addEventListener('click',fetchPrayerTimes)
 });
 
 function openAzan(){
-  document.getElementById('azan-panel').classList.add('on');
+  gel('azan-panel').classList.add('on');
   fetchPrayerTimes();
   startClock();
   getQibla();
@@ -2361,17 +2368,17 @@ function startClock(){
   function tick(){
     const now=new Date();
     const h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0');
-    const el=document.getElementById('az-clock');if(el)el.textContent=`${h}:${m}`;
+    const el=gel('az-clock');if(el)el.textContent=`${h}:${m}`;
     // Check if prayer time now
     checkAzanAlert(now);
   }
   tick();clockInterval=setInterval(tick,1000);
   // Date
   const d=new Date();
-  const dateEl=document.getElementById('az-date');
+  const dateEl=gel('az-date');
   if(dateEl)dateEl.textContent=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   // Hijri approximation
-  const hijriEl=document.getElementById('az-hijri');
+  const hijriEl=gel('az-hijri');
   if(hijriEl){
     try{hijriEl.textContent=d.toLocaleDateString('ar-SA-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'});}
     catch(e){hijriEl.textContent='بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ';}
@@ -2379,7 +2386,7 @@ function startClock(){
 }
 
 async function fetchPrayerTimes(){
-  const locEl=document.getElementById('az-loc');
+  const locEl=gel('az-loc');
   if(locEl)locEl.textContent='📍 Getting location...';
   // Try geolocation first
   if(navigator.geolocation){
@@ -2414,7 +2421,7 @@ async function loadPrayerAPI(lat,lon,city){
       const T=d.data.timings;
       prayerTimes={fajr:T.Fajr,sunrise:T.Sunrise,dhuhr:T.Dhuhr,asr:T.Asr,maghrib:T.Maghrib,isha:T.Isha};
       ['fajr','sunrise','dhuhr','asr','maghrib','isha'].forEach(p=>{
-        const el=document.getElementById('pt-'+p);if(el)el.textContent=prayerTimes[p]||'--:--';
+        const el=gel('pt-'+p);if(el)el.textContent=prayerTimes[p]||'--:--';
       });
       highlightNextPrayer();
       scheduleAzanAlerts();
@@ -2433,7 +2440,7 @@ function highlightNextPrayer(){
     const t=prayerTimes[p];if(!t)return;
     const[ph,pm]=t.split(':').map(Number);
     const pMin=ph*60+pm;
-    const card=document.getElementById('pt-'+p)?.closest('.prayer-card');
+    const card=gel('pt-'+p)?.closest('.prayer-card');
     if(!card)return;
     if(pMin<nowMin){card.classList.add('passed-p');}
     else if(!nextFound){
@@ -2481,8 +2488,8 @@ function getQibla(){
     const x=Math.sin(dLon)*Math.cos(la2);
     const y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dLon);
     const bearing=(Math.atan2(x,y)*180/Math.PI+360)%360;
-    const arrow=document.getElementById('qibla-arrow');
-    const deg=document.getElementById('qibla-deg');
+    const arrow=gel('qibla-arrow');
+    const deg=gel('qibla-deg');
     if(arrow)arrow.style.transform=`rotate(${bearing}deg)`;
     if(deg)deg.textContent=`Qibla is ${Math.round(bearing)}° from North`;
   },()=>{});
@@ -2493,8 +2500,8 @@ function getQibla(){
 // ═══════════════════════════════════════
 function openCityModal(city){
   const members=MEMBERS.filter(m=>m.city.toLowerCase()===city.toLowerCase());
-  document.getElementById('city-modal-title').textContent=`📍 ${city} (${members.length} members)`;
-  document.getElementById('city-modal-list').innerHTML=members.length?members.map(m=>`
+  gel('city-modal-title').textContent=`📍 ${city} (${members.length} members)`;
+  gel('city-modal-list').innerHTML=members.length?members.map(m=>`
     <div class="mi">
       <div class="avwrap" data-memid="${m.id}">
         <div class="avi md" style="background:${avC(m.name)};">${avI(m.name)}<div class="udot ${m.online?'ondot':'offdot'}"></div></div>
@@ -2505,11 +2512,11 @@ function openCityModal(city){
         <a href="tel:${m.phone}" class="btn bo" style="padding:5px 9px;font-size:.68rem;text-decoration:none;">Call</a>
       </div>
     </div>`).join(''):'<div class="empty"><p>No members from '+city+'</p></div>';
-  document.getElementById('city-modal').classList.add('on');
+  gel('city-modal').classList.add('on');
 }
-document.getElementById('city-modal-close').addEventListener('click',()=>document.getElementById('city-modal').classList.remove('on'));
-document.getElementById('city-modal').addEventListener('click',e=>{if(e.target===document.getElementById('city-modal'))document.getElementById('city-modal').classList.remove('on');});
-document.getElementById('city-modal-list').addEventListener('click',e=>{
+gel('city-modal-close').addEventListener('click',()=>gel('city-modal').classList.remove('on'));
+gel('city-modal').addEventListener('click',e=>{if(e.target===gel('city-modal'))gel('city-modal').classList.remove('on');});
+gel('city-modal-list').addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(b)openChat(Number(b.dataset.id),b.dataset.name,'direct');
   const av=e.target.closest('[data-memid]');if(av)showMemberProfile(Number(av.dataset.memid));
 });
@@ -2520,7 +2527,7 @@ document.querySelector('.mbox')?.addEventListener('click',e=>{
 });
 // Location list double-tap
 function renderLocation(){
-  document.getElementById('loc-list').innerHTML=LOCATIONS.map(l=>`
+  gel('loc-list').innerHTML=LOCATIONS.map(l=>`
     <div class="li" data-city-tap="${l.city}" style="cursor:pointer;">
       <span style="font-size:1.35rem;">${l.flag}</span>
       <div style="flex:1;font-weight:500;">${l.city}</div>
@@ -2528,7 +2535,7 @@ function renderLocation(){
       <span style="color:var(--t4);font-size:.7rem;margin-left:6px;">›</span>
     </div>`).join('');
 }
-document.getElementById('loc-list').addEventListener('click',e=>{
+gel('loc-list').addEventListener('click',e=>{
   const row=e.target.closest('[data-city-tap]');
   if(row)openCityModal(row.dataset.cityTap);
 });
@@ -2541,42 +2548,42 @@ let groupMsgs={};
 
 function openGroupChat(id,name,memberCount){
   activeGroupId=id;activeGroupName=name;
-  setAvi(document.getElementById('gw-av'),name);
-  document.getElementById('gw-name').textContent=name;
-  document.getElementById('gw-sub').textContent=`${memberCount||'?'} members`;
+  setAvi(gel('gw-av'),name);
+  gel('gw-name').textContent=name;
+  gel('gw-sub').textContent=`${memberCount||'?'} members`;
   if(!groupMsgs[id])groupMsgs[id]=[
     {text:'Welcome to '+name+'! 🕌',sent:false,from:'Admin',time:'8:00'},
     {text:'Assalamu Alaikum everyone!',sent:false,from:'Mahmood Ahmad',time:'8:01'},
   ];
   renderGroupMsgs(id);
   updateGroupLockUI();
-  document.getElementById('group-win').classList.add('on');
-  document.getElementById('group-menu').style.display='none';
+  gel('group-win').classList.add('on');
+  gel('group-menu').style.display='none';
 }
 
 function renderGroupMsgs(id){
   const msgs=groupMsgs[id]||[];
-  document.getElementById('gw-body').innerHTML=msgs.map(m=>`
+  gel('gw-body').innerHTML=msgs.map(m=>`
     <div class="bub ${m.sent?'out':'in'}" style="max-width:82%;">
       ${!m.sent?`<div style="font-size:.62rem;font-weight:700;color:${avC(m.from||'U')};margin-bottom:2px;">${m.from||'Member'}</div>`:''}
       ${m.img?`<img src="${m.img}" alt="" style="max-width:200px;border-radius:9px;display:block;margin-top:5px;">`:''}
       <span>${m.text||''}</span>
       <div class="bt">${m.time}</div>
     </div>`).join('');
-  const b=document.getElementById('gw-body');b.scrollTop=b.scrollHeight;
+  const b=gel('gw-body');b.scrollTop=b.scrollHeight;
 }
 
 function updateGroupLockUI(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin');
   const locked=groupLocked;
-  document.getElementById('gw-locked-bar').style.display=locked&&!isAdm?'block':'none';
-  document.getElementById('gw-inp-row').style.display=locked&&!isAdm?'none':'flex';
-  document.getElementById('gmi-lock').textContent=locked?'🔓 Unlock Chat':'🔒 Lock Chat (Admin only)';
+  gel('gw-locked-bar').style.display=locked&&!isAdm?'block':'none';
+  gel('gw-inp-row').style.display=locked&&!isAdm?'none':'flex';
+  gel('gmi-lock').textContent=locked?'🔓 Unlock Chat':'🔒 Lock Chat (Admin only)';
 }
 
 function sendGroupMsg(){
   if(groupLocked&&!(CU?.isAdmin||CU?.role==='admin')){showToast('🔒 Group is locked by admin');return;}
-  const inp=document.getElementById('gw-inp'),txt=inp.value.trim();if(!txt||!activeGroupId)return;
+  const inp=gel('gw-inp'),txt=inp.value.trim();if(!txt||!activeGroupId)return;
   const now=new Date(),time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   if(!groupMsgs[activeGroupId])groupMsgs[activeGroupId]=[];
   groupMsgs[activeGroupId].push({text:txt,sent:true,from:CU?.name||'You',time});
@@ -2586,18 +2593,18 @@ function sendGroupMsg(){
 }
 
 // Group menu handlers
-document.getElementById('gw-menu-btn').addEventListener('click',e=>{
+gel('gw-menu-btn').addEventListener('click',e=>{
   e.stopPropagation();
-  const m=document.getElementById('group-menu');
+  const m=gel('group-menu');
   m.style.display=m.style.display==='none'?'block':'none';
 });
-document.addEventListener('click',e=>{if(!e.target.closest('#group-menu')&&!e.target.closest('#gw-menu-btn'))document.getElementById('group-menu').style.display='none';});
+document.addEventListener('click',e=>{if(!e.target.closest('#group-menu')&&!e.target.closest('#gw-menu-btn'))gel('group-menu').style.display='none';});
 
-document.getElementById('gmi-members').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-members').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   const chat=CHATS.find(c=>c.id===activeGroupId);
   openSheet('comment'); // Reuse comment sheet to show member list
-  document.getElementById('cmt-list').innerHTML=MEMBERS.slice(0,chat?.members||9).map(m=>`
+  gel('cmt-list').innerHTML=MEMBERS.slice(0,chat?.members||9).map(m=>`
     <div class="cmt">
       <div class="avi sm" style="background:${avC(m.name)};">${avI(m.name)}</div>
       <div class="cmt-body"><h6>${m.name}${m.isAdmin?'<span class="mbadge">Admin</span>':''}</h6><p>${m.city} · ${m.role}</p></div>
@@ -2605,51 +2612,51 @@ document.getElementById('gmi-members').addEventListener('click',()=>{
   document.querySelector('#so-comment h3').textContent='👥 Group Members';
 });
 
-document.getElementById('gmi-addmem').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-addmem').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   // Populate group member picker
-  const cont=document.getElementById('grp-members');
+  const cont=gel('grp-members');
   cont.innerHTML=MEMBERS.map(m=>`<div class="member-check"><input type="checkbox" id="ga-${m.id}" value="${m.id}"><label for="ga-${m.id}" style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;"><div class="avi sm" style="background:${avC(m.name)};">${avI(m.name)}</div><span style="font-size:.85rem;">${m.name}</span></label></div>`).join('');
-  document.getElementById('grp-nm').value=activeGroupName;
+  gel('grp-nm').value=activeGroupName;
   openSheet('group');
 });
 
-document.getElementById('gmi-lock').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-lock').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   if(!(CU?.isAdmin||CU?.role==='admin')){showToast('Only admins can lock/unlock the group');return;}
   groupLocked=!groupLocked;updateGroupLockUI();
   showToast(groupLocked?'🔒 Group locked — only admins can send':'🔓 Group unlocked');
   addNotification('🔒','#fef9c3',groupLocked?'Group Locked':'Group Unlocked',activeGroupName+(groupLocked?' is now locked by admin':' is unlocked'));
 });
 
-document.getElementById('gmi-clear').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-clear').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   if(!(CU?.isAdmin||CU?.role==='admin')){showToast('Only admins can clear group chat');return;}
   if(confirm('Clear all messages in '+activeGroupName+'?')){
     groupMsgs[activeGroupId]=[];renderGroupMsgs(activeGroupId);showToast('Chat cleared');
   }
 });
 
-document.getElementById('gmi-mute').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-mute').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   groupMuted=!groupMuted;showToast(groupMuted?'🔕 Group muted':'🔔 Group unmuted');
-  document.getElementById('gmi-mute').textContent=groupMuted?'🔔 Unmute Notifications':'🔕 Mute Notifications';
+  gel('gmi-mute').textContent=groupMuted?'🔔 Unmute Notifications':'🔕 Mute Notifications';
 });
 
-document.getElementById('gmi-exit').addEventListener('click',()=>{
-  document.getElementById('group-menu').style.display='none';
+gel('gmi-exit').addEventListener('click',()=>{
+  gel('group-menu').style.display='none';
   if(confirm('Exit group "'+activeGroupName+'"?')){
     const idx=CHATS.findIndex(c=>c.id===activeGroupId);if(idx>=0)CHATS.splice(idx,1);
-    renderChats();document.getElementById('group-win').classList.remove('on');
+    renderChats();gel('group-win').classList.remove('on');
     showToast('You left '+activeGroupName);
   }
 });
 
 // Group send
-document.getElementById('gw-send').addEventListener('click',sendGroupMsg);
-document.getElementById('gw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendGroupMsg();});
-document.getElementById('gw-back').addEventListener('click',()=>{document.getElementById('group-win').classList.remove('on');activeGroupId=null;});
-document.getElementById('gw-file').addEventListener('change',function(){
+gel('gw-send').addEventListener('click',sendGroupMsg);
+gel('gw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendGroupMsg();});
+gel('gw-back').addEventListener('click',()=>{gel('group-win').classList.remove('on');activeGroupId=null;});
+gel('gw-file').addEventListener('change',function(){
   if(!this.files[0]||!activeGroupId)return;
   const r=new FileReader();r.onload=e=>{
     const now=new Date(),time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2665,10 +2672,10 @@ document.getElementById('gw-file').addEventListener('change',function(){
 window.addEventListener('DOMContentLoaded',()=>{
   // Hide app UI until logged in
   ['hdr','app','nav'].forEach(id=>{
-    const el=document.getElementById(id);
+    const el=gel(id);
     if(el)el.style.display='none';
   });
-  document.getElementById('spl').style.display='none';
+  gel('spl').style.display='none';
   applyLang(lang);
   applyDark();
   // Init Terms & Conditions (must run after DOM is ready)
