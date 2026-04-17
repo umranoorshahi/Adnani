@@ -611,9 +611,17 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 <div class="pp" id="pp">
   <div class="pp-icon">⏳</div>
   <h2>Approval Pending</h2>
-  <p>Your request has been sent. Any approved member can approve you.</p>
-  <div class="pp-admin">Admin: <strong>Sri Md. Irfan</strong> — General Secretary<br>📞 <strong>9839060377</strong> (Lucknow)</div>
-  <div style="display:flex;gap:8px;margin-top:16px;">
+  <p>Your request has been sent. Admin will approve you shortly.</p>
+  <div class="pp-admin" style="margin-bottom:12px;">
+    <strong>Admin: Sri Md. Irfan</strong><br>
+    📞 <strong>9839060377</strong> (Lucknow)<br>
+    <small style="opacity:.8">WhatsApp ya call karein</small>
+  </div>
+  <div id="pp-myphone" style="background:rgba(240,192,64,.15);border:1px solid rgba(240,192,64,.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;">
+    <div style="font-size:.75rem;color:rgba(255,255,255,.7);margin-bottom:4px;">Apna number admin ko bhejein:</div>
+    <div id="pp-num" style="font-size:1.3rem;font-weight:800;letter-spacing:2px;color:#f0c040;">—</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;">
     <button class="btn bo" id="chk-btn" onclick="checkApproval()">🔄 Check Status</button>
     <button class="btn br" id="lgout-pp" onclick="doLogout()">← Logout</button>
   </div>
@@ -1085,6 +1093,13 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 <!-- APPROVE -->
 <div class="sc" id="sc-approve">
   <div class="shdr" style="background:linear-gradient(135deg,#78350f,#92400e);"><h2>✅ Approve Members</h2><p>Any approved member can approve requests</p></div>
+  <div class="card" style="margin:8px 12px;padding:12px;">
+    <p style="font-size:.78rem;color:var(--t3);margin-bottom:8px;">📞 Phone number se seedha approve karein:</p>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="tel" id="manual-phone" placeholder="e.g. 7007722342" style="flex:1;padding:8px 10px;border:1.5px solid var(--s3);border-radius:8px;font-size:.88rem;background:var(--s2);outline:none;" inputmode="numeric" maxlength="15">
+      <button onclick="approveByPhone()" class="btn bp" style="padding:8px 14px;font-size:.82rem;white-space:nowrap;flex-shrink:0;">✓ Approve</button>
+    </div>
+  </div>
   <div id="approve-list"></div>
 </div>
 
@@ -1569,7 +1584,10 @@ async function saveProfile(){
   } else {
     var pr=document.getElementById('ap-prof');if(pr)pr.style.display='none';
     var pp=document.getElementById('pp');if(pp)pp.classList.add('v');
-    showToast('✅ Request sent! Admin will approve soon.');
+    // Show user's phone number so they can share with admin
+    var ppNum=document.getElementById('pp-num');
+    if(ppNum)ppNum.textContent=phone||'—';
+    showToast('✅ Request sent! Share your number with Admin.');
   }
 }
 
@@ -1589,6 +1607,25 @@ function showPending(){hideAllAuth();gel('pp').classList.add('v');}
 async function checkApproval(){
   var btn=document.getElementById('chk-btn');
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  
+  // Check localStorage approved list first (works without server)
+  try{
+    var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
+    var myPhone=phone||'';
+    var isApproved=approved.find(function(a){return a.phone===myPhone;});
+    if(isApproved){
+      var u=gUser();if(u){u.approved=true;sUser(u);}
+      var pp=document.getElementById('pp');if(pp)pp.classList.remove('v');
+      var hdr=document.getElementById('hdr');if(hdr)hdr.style.display='flex';
+      var nav=document.getElementById('nav');if(nav)nav.style.display='flex';
+      var app=document.getElementById('app');if(app)app.style.display='block';
+      showToast('✅ Approved! Welcome!');
+      if(btn){btn.disabled=false;btn.textContent='🔄 Check Status';}
+      try{initApp();}catch(e){}
+      return;
+    }
+  }catch(e){}
+  
   try{
     var r=await fetch(SERVER+'/api/auth/status',{headers:{'Authorization':'Bearer '+gTok()}});
     var d=await r.json();
@@ -2615,6 +2652,40 @@ function renderApproveList(){
       }
     })
     .catch(function(){});
+}
+
+function approveByPhone(){
+  var inp=document.getElementById('manual-phone');
+  if(!inp)return;
+  var ph=inp.value.replace(/\D/g,'');
+  if(ph.length<10){showToast('Valid phone number daalo');return;}
+  // Add to approved list
+  var exists=NEW_MEMBERS.find(function(m){return m.phone===ph;});
+  if(!exists){
+    NEW_MEMBERS.push({
+      id:Date.now(),
+      name:'Member ('+ph+')',
+      city:'—',
+      role:'Community Member',
+      phone:ph,
+      online:false,
+      address:'—'
+    });
+  }
+  // Remove from pending if there
+  PENDING=PENDING.filter(function(p){return p.phone!==ph;});
+  try{localStorage.setItem('adnani_pending',JSON.stringify(PENDING));}catch(e){}
+  // Save approved member
+  try{
+    var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
+    approved.push({phone:ph,approved_at:new Date().toISOString()});
+    localStorage.setItem('adnani_approved',JSON.stringify(approved));
+  }catch(e){}
+  inp.value='';
+  showToast('✅ '+ph+' approved! Unhe "Check Status" tap karne ko bolein.');
+  addNotification('✅','#dcfce7','Member Approved',ph+' ko access mil gaya');
+  renderApproveListUI();
+  renderMembers();
 }
 
 function renderApproveListUI(){
