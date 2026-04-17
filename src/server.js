@@ -78,6 +78,11 @@ app.use('/api/quran',        rateLimit('quran'),   require('./modules/quran/qura
 app.use('/api/admin',        rateLimit('admin'),   require('./modules/admin/adminRoutes'));
 app.use('/api/compliance',                         require('./modules/compliance/complianceRoutes'));
 
+// Simple approval API (cross-device, no complex auth)
+app.use('/api/simple',    require('./modules/simple/simpleRoutes'));
+app.use('/api/posts',     require('./modules/posts/postsRoutes'));
+app.use('/api/messages',  require('./modules/chat/messagesRoutes'));
+
 // Health check
 app.get('/health', (req, res) => res.json({
   status:     'ok',
