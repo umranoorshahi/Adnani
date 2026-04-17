@@ -1731,7 +1731,7 @@ on('prof-photo-inp','change',function(){
 // NOTIFICATIONS
 // ═══════════════════════════════════
 let notifications=[
-  
+  {id:1,icon:'🤝',bg:'#dcfce7',title:'New member requesting approval',text:'Mohammad Usman — Mumbai',time:'Now',read:false},
   {id:2,icon:'💬',bg:'#fef9c3',title:'Message from Mahmood Ahmad',text:'Assalamu Alaikum! Meeting kal hai',time:'10:32',read:false},
   {id:3,icon:'❤️',bg:'#fce7f3',title:'Charity Drive — Last Day!',text:'Madrasa Fund — 80% complete',time:'Yesterday',read:false},
 ];
@@ -1861,7 +1861,10 @@ let MEMBERS=[
 const COMMITTEE_IDS = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]);
 // New members added after approval go here
 let NEW_MEMBERS = [];
-let PENDING=[]; // Real pending requests only
+let PENDING=[
+  {id:101,name:'Mohammad Usman',city:'Mumbai',phone:'9920112233',requested:'Just now'},
+  {id:102,name:'Abdul Basit',city:'Multan',phone:'03021122334',requested:'1 hour ago'},
+];
 let CHATS=[
   {id:1, name:'Haji Mahmood Ahmad',   last:'Meeting kal hai — Jama Masjid 4 PM',      time:'10:32',unread:2,type:'direct'},
   {id:2, name:'Sri Md. Irfan',        last:'Accounts check kar liye',                  time:'9:45', unread:0,type:'direct'},
