@@ -1330,7 +1330,7 @@ window.addEventListener('error',function(e){
 // ═══════════════════════════════════
 const SERVER='https://web-production-4f16.up.railway.app';
 const ADMIN_PHONES=['9415061063','9839060377','9918717288'];
-const isAdminPhone=p=>ADMIN_PHONES.some(a=>String(p).replace(/\D/g,'').includes(a));
+const isAdminPhone=p=>ADMIN_PHONES.some(a=>String(p).replace(/[^0-9]/g,'').includes(a));
 const QURAN_CDN='https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/';
 
 // ═══════════════════════════════════
@@ -1399,7 +1399,7 @@ const on=(id,ev,fn)=>{
   if(el)el.addEventListener(ev,fn);
 };
 
-on('ph-inp','input',function(){this.value=this.value.replace(/\D/g,'');});
+on('ph-inp','input',function(){this.value=this.value.replace(/[^0-9]/g,'');});
 on('otp-btn','click',sendOTP);
 on('ver-btn','click',verifyOTP);
 on('bk-btn','click',()=>{
@@ -1414,7 +1414,7 @@ on('lab','click',toggleLang);
 async function sendOTP(){
   var pInp=document.getElementById('ph-inp');
   if(!pInp)return;
-  const p=pInp.value.replace(/\D/g,'');
+  const p=pInp.value.replace(/[^0-9]/g,'');
   if(p.length<10){showToast('Enter valid 10-digit number');return;}
   phone=p;
   var btn=document.getElementById('otp-btn');
@@ -1500,9 +1500,9 @@ async function verifyOTP(){
   // Admin bypass
   if(isAdminPhone(phone)){
     sTok('user-'+Date.now());
-    var onlyAdmin=(String(phone).replace(/\D/g,'')==='9839060377');
+    var onlyAdmin=(String(phone).replace(/[^0-9]/g,'')==='9839060377');
     // Noor Mohammad (9918717288) and Mahmood (9415061063) = super user (edit/delete/approve but no Admin label)
-    var isSuperUser=['9415061063','9918717288'].includes(String(phone).replace(/\D/g,''));
+    var isSuperUser=['9415061063','9918717288'].includes(String(phone).replace(/[^0-9]/g,''));
     const saved=gUser();
     if(saved&&saved.name){
       sUser({...saved,phone,approved:true,isAdmin:onlyAdmin,isSuperUser:isSuperUser,canApprove:true,role:onlyAdmin?'admin':'member'});
@@ -1513,7 +1513,7 @@ async function verifyOTP(){
   }
 
   // Pre-approved member
-  const pre=MEMBERS.find(function(m){return m.phone.replace(/\D/g,'')===phone;});
+  const pre=MEMBERS.find(function(m){return m.phone.replace(/[^0-9]/g,'')===phone;});
   if(pre){
     sTok('mbr-'+Date.now());
     sUser({name:pre.name,city:pre.city,phone,approved:true,isAdmin:false,role:'member'});
@@ -1595,8 +1595,8 @@ async function saveProfile(){
 function handleUser(u){
   if(isAdminPhone(u.phone||phone)){
     // Only Irfan (9839060377) is shown as Admin
-    var onlyAdmin=(String(u.phone||phone).replace(/\D/g,'')==='9839060377');
-    var isSuperUser=['9415061063','9918717288'].includes(String(u.phone||phone).replace(/\D/g,''));
+    var onlyAdmin=(String(u.phone||phone).replace(/[^0-9]/g,'')==='9839060377');
+    var isSuperUser=['9415061063','9918717288'].includes(String(u.phone||phone).replace(/[^0-9]/g,''));
     sUser({...u,approved:true,isAdmin:onlyAdmin,isSuperUser:isSuperUser,canApprove:true,role:onlyAdmin?'admin':'member'});
     launchApp();return;
   }
@@ -1630,19 +1630,43 @@ function startAutoCheck(){
 async function checkApproval(){
   var btn=document.getElementById('chk-btn');
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
-  
-  // Check localStorage approved list first (works without server)
+
+  function doApprove(){
+    var u=gUser();
+    if(u){u.approved=true;sUser(u);}
+    var pp=document.getElementById('pp');if(pp)pp.classList.remove('v');
+    var hdr=document.getElementById('hdr');if(hdr)hdr.style.display='flex';
+    var nav=document.getElementById('nav');if(nav)nav.style.display='flex';
+    var app=document.getElementById('app');if(app)app.style.display='block';
+    showToast('✅ Approved! Welcome to Adnani Connected!');
+    if(btn){btn.disabled=false;btn.textContent='🔄 Check Status';}
+    try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
+  }
+
+  // Get my phone
+  var myPhone=String(phone||'').replace(/[^0-9]/g,'');
+  var savedUser=null;
+  try{savedUser=JSON.parse(localStorage.getItem('usr')||'null');}catch(e){}
+  if(!myPhone&&savedUser)myPhone=String(savedUser.phone||'').replace(/[^0-9]/g,'');
+
+  // 1. Check server FIRST (most reliable - cross-device)
+  try{
+    var resp=await fetch(SERVER+'/api/simple/status/'+myPhone);
+    var data=await resp.json();
+    if(data.approved){
+      doApprove();
+      return;
+    }
+  }catch(e){
+    // Server unreachable — fall through to localStorage
+  }
+
+  // 2. Check localStorage (fallback)
   try{
     var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
-    var myPhone=String(phone||'').replace(/\D/g,'');
-    // Also check saved user phone
-    var savedUser=null;
-    try{savedUser=JSON.parse(localStorage.getItem('usr')||'null');}catch(e){}
-    if(!myPhone&&savedUser)myPhone=String(savedUser.phone||'').replace(/\D/g,'');
     var isApproved=approved.find(function(a){
-      return String(a.phone).replace(/\D/g,'')===myPhone;
+      return String(a.phone).replace(/[^0-9]/g,'')===myPhone;
     });
-    // Check if user is already marked approved in saved data
     if(!isApproved&&savedUser&&savedUser.approved){
       isApproved={phone:myPhone};
     }
@@ -2286,7 +2310,7 @@ function renderBusiness(){
         <div class="tags">${b.tags.map(tg=>`<span class="tag">${tg}</span>`).join('')}</div>
         <div class="bacts">
           <a href="tel:${b.phone}" class="btn bp" style="font-size:.7rem;text-decoration:none;">📞 Call</a>
-          <a href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" class="btn bs" style="font-size:.7rem;text-decoration:none;">💬 WhatsApp</a>
+          <a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn bs" style="font-size:.7rem;text-decoration:none;">💬 WhatsApp</a>
           <button class="btn bo" style="font-size:.7rem;" data-biz-chat="${b.id}">✉️ Chat</button>
           ${isAdm?`<button class="edit-inline" data-edit-biz="${b.id}">Edit</button><button class="del-btn" data-del-biz="${b.id}">Del</button>`:''}
         </div>
@@ -2333,7 +2357,7 @@ function renderRishta(){
         <div class="ra">
           ${r.ph?`<a href="tel:${r.ph}" class="btn bp" style="flex:1;font-size:.73rem;text-decoration:none;">📞 Direct Call</a>`:'<button class="btn bp" style="flex:1;font-size:.73rem;" data-rishta-contact="'+r.id+'">💬 Contact Admin</button>'}
           <button class="btn bo" style="font-size:.73rem;" data-rishta-int="${r.id}">❤️ Interested</button>
-          ${r.ph?`<a href="https://wa.me/91${r.ph.replace(/\D/g,'')}" target="_blank" class="btn bs" style="font-size:.73rem;text-decoration:none;">💬 WhatsApp</a>`:''}
+          ${r.ph?`<a href="https://wa.me/91${r.ph.replace(/[^0-9]/g,'')}" target="_blank" class="btn bs" style="font-size:.73rem;text-decoration:none;">💬 WhatsApp</a>`:''}
           ${isAdm?`<button class="edit-inline" data-edit-rishta="${r.id}">Edit</button><button class="del-btn" data-del-rishta="${r.id}">Del</button>`:''}
         </div>
       </div>
@@ -2645,87 +2669,109 @@ function renderApproveList(){
   const apc=gel('ap-c');
   const el=gel('approve-list');if(!el)return;
 
-  // Load from localStorage first (cross-device sharing)
+  // Show loading
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3);">⏳ Loading...</div>';
+
+  // Get admin phone for server call
+  var adminPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+
+  // Load from localStorage first
   try{
-    const stored=JSON.parse(localStorage.getItem('adnani_pending')||'[]');
+    var stored=JSON.parse(localStorage.getItem('adnani_pending')||'[]');
     stored.forEach(function(p){
-      if(!PENDING.find(function(x){return x.phone===p.phone;})){
+      if(!PENDING.find(function(x){return String(x.phone).replace(/[^0-9]/g,'')===String(p.phone).replace(/[^0-9]/g,'');})){
         PENDING.push(p);
       }
     });
   }catch(e){}
 
-  if(pc)pc.textContent=PENDING.length;
-  if(apc)apc.textContent=PENDING.length;
-
-  // Show what we have immediately
-  renderApproveListUI();
-
-  // Also try server
-  fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}})
+  // Fetch from SERVER — this is the source of truth
+  fetch(SERVER+'/api/simple/pending?admin_phone='+adminPhone)
     .then(function(r){return r.json();})
     .then(function(d){
-      const serverPending=d.pending||d||[];
-      if(Array.isArray(serverPending)&&serverPending.length){
+      var serverPending=d.pending||[];
+      if(Array.isArray(serverPending)){
         serverPending.forEach(function(p){
-          const ph=p.phone||p.mobile||'';
-          if(!PENDING.find(function(x){return x.phone===ph;})){
+          var ph=String(p.phone||'').replace(/[^0-9]/g,'');
+          if(!PENDING.find(function(x){return String(x.phone).replace(/[^0-9]/g,'')===ph;})){
             PENDING.push({
-              id:p.id||p._id||Date.now(),
-              name:p.name||'New User',
-              city:p.city||'Unknown',
+              id:p._id||Date.now(),
+              name:p.name||'New Member',
+              city:p.city||'—',
               phone:ph,
-              requested:p.createdAt?new Date(p.createdAt).toLocaleString():'Recently'
+              requested:p.registered_at?new Date(p.registered_at).toLocaleTimeString():'Recently'
             });
           }
         });
-        if(pc)pc.textContent=PENDING.length;
-        if(apc)apc.textContent=PENDING.length;
-        renderApproveListUI();
       }
+      if(pc)pc.textContent=PENDING.length;
+      if(apc)apc.textContent=PENDING.length;
+      renderApproveListUI();
     })
-    .catch(function(){});
+    .catch(function(){
+      // Server failed — show local data
+      if(pc)pc.textContent=PENDING.length;
+      if(apc)apc.textContent=PENDING.length;
+      renderApproveListUI();
+    });
 }
 
 function approveByPhone(){
   var inp=document.getElementById('manual-phone');
   if(!inp)return;
-  var ph=inp.value.replace(/\D/g,'');
+  var ph=inp.value.replace(/[^0-9]/g,'');
   if(ph.length<10){showToast('Valid phone number daalo');return;}
-  // Add to approved list
-  var exists=NEW_MEMBERS.find(function(m){return m.phone===ph;});
-  if(!exists){
+
+  var adminPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  inp.value='';
+
+  // 1. Save locally
+  try{
+    var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
+    if(!approved.find(function(a){return a.phone===ph;})){
+      approved.push({phone:ph,approved_at:new Date().toISOString()});
+      localStorage.setItem('adnani_approved',JSON.stringify(approved));
+    }
+  }catch(e){}
+
+  // 2. Add to NEW_MEMBERS locally
+  var memberName='';
+  var pendingEntry=PENDING.find(function(p){return String(p.phone).replace(/[^0-9]/g,'')===ph;});
+  if(pendingEntry)memberName=pendingEntry.name||'';
+  if(!NEW_MEMBERS.find(function(m){return String(m.phone).replace(/[^0-9]/g,'')===ph;})){
     NEW_MEMBERS.push({
       id:Date.now(),
-      name:'Member ('+ph+')',
-      city:'—',
+      name:memberName||'Member ('+ph+')',
+      city:pendingEntry?pendingEntry.city:'—',
       role:'Community Member',
       phone:ph,
       online:false,
       address:'—'
     });
   }
-  // Remove from pending if there
-  PENDING=PENDING.filter(function(p){return p.phone!==ph;});
+  PENDING=PENDING.filter(function(p){return String(p.phone).replace(/[^0-9]/g,'')!==ph;});
   try{localStorage.setItem('adnani_pending',JSON.stringify(PENDING));}catch(e){}
-  // Save approved member
-  try{
-    var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
-    approved.push({phone:ph,approved_at:new Date().toISOString()});
-    localStorage.setItem('adnani_approved',JSON.stringify(approved));
-  }catch(e){}
-  inp.value='';
-  showToast('✅ '+ph+' approved!');
-  if(!window._lastApproved||window._lastApproved!==ph){
-    window._lastApproved=ph;
-    addNotification('✅','#dcfce7','Member Approved',ph+' approved!');
-  }
-  // Generate approval link to share with member
+
+  // 3. Save on SERVER (so member can check from their device)
+  fetch(SERVER+'/api/simple/approve',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({admin_phone:adminPhone,member_phone:ph})
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(d.success){
+      showToast('✅ '+ph+' approved on server!');
+      addNotification('✅','#dcfce7','Member Approved',ph+' ko access mil gaya');
+    }
+  })
+  .catch(function(){
+    showToast('✅ '+ph+' approved locally. Server sync failed.');
+  });
+
+  // 4. Send WhatsApp with approval link
   var approvalLink='https://umranoorshahi.github.io/Adnani/#approve='+ph;
-  var waMsg='✅ Adnani Connected: Aapko approve kar diya gaya hai! Yeh link kholein aur app use karein:\n'+approvalLink;
-  if(confirm('✅ '+ph+' approved!\n\nKya unhe WhatsApp pe approval link bhejna chahte hain?')){
-    window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(waMsg),'_blank');
-  }
+  var waMsg='\u2705 Adnani Connected App mein aapko approve kar diya gaya hai!\n\nYeh link kholein aur app use karein:\n'+approvalLink+'\n\nAdmin: Sri Md. Irfan - 9839060377';
+
   renderApproveListUI();
   renderMembers();
 }
@@ -3477,7 +3523,7 @@ function _startApp(){
     try{
       var hash=window.location.hash;
       if(hash&&hash.startsWith('#approve=')){
-        var approvedPhone=hash.replace('#approve=','').replace(/\D/g,'');
+        var approvedPhone=hash.replace('#approve=','').replace(/[^0-9]/g,'');
         if(approvedPhone){
           var approvedList=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
           if(!approvedList.find(function(a){return a.phone===approvedPhone;})){
@@ -3486,7 +3532,7 @@ function _startApp(){
           }
           // Also update user if this is their phone
           var savedU=JSON.parse(localStorage.getItem('usr')||'null');
-          if(savedU&&String(savedU.phone).replace(/\D/g,'')===approvedPhone){
+          if(savedU&&String(savedU.phone).replace(/[^0-9]/g,'')===approvedPhone){
             savedU.approved=true;
             localStorage.setItem('usr',JSON.stringify(savedU));
           }
@@ -3503,7 +3549,7 @@ function _startApp(){
     if(tok&&u&&u.name){
       // ALWAYS re-check phone for admin/superuser status
       // This fixes stale localStorage data issue
-      var ph=String(u.phone||'').replace(/\D/g,'');
+      var ph=String(u.phone||'').replace(/[^0-9]/g,'');
       var onlyAdmin=(ph==='9839060377');
       var isSuperUser=(ph==='9415061063'||ph==='9918717288');
       var isSpecial=onlyAdmin||isSuperUser;
