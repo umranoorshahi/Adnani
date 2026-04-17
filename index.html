@@ -121,7 +121,7 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 .nb.on::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:linear-gradient(90deg,#b8962e,#f0c040);border-radius:0 0 3px 3px;}
 
 /* SCREENS */
-.sc{display:none;}.sc.on{display:block;animation:fu .22s ease;}
+.sc{display:none;}.sc.on{display:block;animation:fu .22s ease;min-height:60vh;padding-bottom:80px;}
 @keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* SECTION HEADER */
@@ -621,8 +621,9 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
     <div style="font-size:.75rem;color:rgba(255,255,255,.7);margin-bottom:4px;">Apna number admin ko bhejein:</div>
     <div id="pp-num" style="font-size:1.3rem;font-weight:800;letter-spacing:2px;color:#f0c040;">—</div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:8px;">
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
     <button class="btn bo" id="chk-btn" onclick="checkApproval()">🔄 Check Status</button>
+    <button class="btn bp" id="wa-share-btn" onclick="shareToAdmin()">💬 WhatsApp Admin</button>
     <button class="btn br" id="lgout-pp" onclick="doLogout()">← Logout</button>
   </div>
 </div>
@@ -1585,7 +1586,9 @@ async function saveProfile(){
     // Show user's phone number so they can share with admin
     var ppNum=document.getElementById('pp-num');
     if(ppNum)ppNum.textContent=phone||'—';
-    showToast('✅ Request sent! Share your number with Admin.');
+    showToast('✅ Request sent! Admin ko WhatsApp karein.');
+    // Start auto-checking approval
+    try{startAutoCheck();}catch(e){}
   }
 }
 
@@ -1602,6 +1605,28 @@ function handleUser(u){
   launchApp();
 }
 function showPending(){hideAllAuth();gel('pp').classList.add('v');}
+function shareToAdmin(){
+  var myPh=document.getElementById('pp-num');
+  var num=myPh?myPh.textContent:'';
+  var msg='Assalamu Alaikum! Mera Adnani Connected App ke liye approval request hai. Mera number: '+num+'. Please approve karein. JazakAllah Khair!';
+  window.open('https://wa.me/919839060377?text='+encodeURIComponent(msg),'_blank');
+}
+
+// Auto-check approval every 15 seconds
+var _autoCheckTimer=null;
+function startAutoCheck(){
+  if(_autoCheckTimer)return;
+  _autoCheckTimer=setInterval(function(){
+    var pp=document.getElementById('pp');
+    if(pp&&pp.classList.contains('v')){
+      checkApproval();
+    } else {
+      clearInterval(_autoCheckTimer);
+      _autoCheckTimer=null;
+    }
+  },15000);
+}
+
 async function checkApproval(){
   var btn=document.getElementById('chk-btn');
   if(btn){btn.disabled=true;btn.textContent='Checking...';}
