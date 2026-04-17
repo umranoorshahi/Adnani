@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fix Railway</title>
+<style>
+body{font-family:sans-serif;background:#f0fdf4;padding:20px}
+input{width:100%;padding:10px;border:2px solid #16a34a;border-radius:8px;font-size:.9rem;margin:8px 0 16px}
+button{width:100%;padding:14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
+button:disabled{background:#86efac}
+.msg{padding:12px;border-radius:8px;margin-top:12px;display:none;font-size:.85rem}
+.ok{background:#dcfce7;color:#166534;display:block!important}
+.err{background:#fee2e2;color:#991b1b;display:block!important}
+</style>
+</head>
+<body>
+<h2 style="color:#14532d">🔧 Fix Railway Start Command</h2>
+<p style="color:#666;font-size:.85rem">Yeh railway.json update karega — phir Railway automatically <code>node src/server.js</code> use karega.</p>
+<label style="font-weight:700;font-size:.85rem">GitHub Token:</label>
+<input type="password" id="tok" placeholder="ghp_ token paste karein">
+<button onclick="fix()" id="btn">🚀 Fix Railway Config</button>
+<div class="msg" id="msg"></div>
+
+<script>
+const B64="ewogICJidWlsZCI6IHsKICAgICJidWlsZGVyIjogIk5JWFBBQ0tTIgogIH0sCiAgImRlcGxveSI6IHsKICAgICJzdGFydENvbW1hbmQiOiAibm9kZSBzcmMvc2VydmVyLmpzIiwKICAgICJyZXN0YXJ0UG9saWN5VHlwZSI6ICJPTl9GQUlMVVJFIiwKICAgICJyZXN0YXJ0UG9saWN5TWF4UmV0cmllcyI6IDMKICB9Cn0=";
+async function fix(){
+  const tok=document.getElementById('tok').value.trim();
+  if(!tok){alert('Token daalo!');return;}
+  const btn=document.getElementById('btn');
+  btn.disabled=true;btn.textContent='⏳ Updating...';
+  
+  const repo='umranoorshahi/Adnani';
+  const path='railway.json';
+  
+  try{
+    // Get SHA
+    let sha=null;
+    const g=await fetch('https://api.github.com/repos/'+repo+'/contents/'+path,
+      {headers:{'Authorization':'token '+tok}});
+    if(g.ok){const d=await g.json();sha=d.sha;}
+    
+    // Push
+    const body={message:'Fix: use node src/server.js',content:B64};
+    if(sha)body.sha=sha;
+    const r=await fetch('https://api.github.com/repos/'+repo+'/contents/'+path,{
+      method:'PUT',
+      headers:{'Authorization':'token '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    
+    if(r.ok){
+      document.getElementById('msg').className='msg ok';
+      document.getElementById('msg').innerHTML='✅ Done! Railway pe jaao → <b>Redeploy</b> tap karo → 2 min mein live!';
+      btn.textContent='✅ Fixed!';
+    } else {
+      const e=await r.json();
+      document.getElementById('msg').className='msg err';
+      document.getElementById('msg').textContent='Error: '+(e.message||r.status);
+      btn.disabled=false;btn.textContent='🔄 Retry';
+    }
+  }catch(e){
+    document.getElementById('msg').className='msg err';
+    document.getElementById('msg').textContent='Error: '+e.message;
+    btn.disabled=false;btn.textContent='🔄 Retry';
+  }
+}
+</script>
+</body>
+</html>
