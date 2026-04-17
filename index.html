@@ -1524,6 +1524,8 @@ async function saveProfile(){
   const city=(cityInp?cityInp.value:'').trim();
   if(!name||!city){try{showToast('Name and city required');}catch(e){}return;}
   const adm=isAdminPhone(phone);
+
+  // Save profile to server
   try{
     const r=await fetch(SERVER+'/api/auth/profile',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},
@@ -1533,22 +1535,31 @@ async function saveProfile(){
   }catch(e){
     sUser({...CU,name,city,approved:adm,isAdmin:adm,role:adm?'admin':'user'});
   }
-  // Add to PENDING list for approvers
+
+  // Add to PENDING so ANY approver phone can see it
   if(!adm){
     const exists=PENDING.find(p=>p.phone===phone);
     if(!exists){
       PENDING.push({
         id:Date.now(),
-        name:CU?.name||name,
-        city:CU?.city||city,
+        name:name,
+        city:city,
         phone:phone,
-        requested:new Date().toLocaleString()
+        requested:new Date().toLocaleTimeString()
       });
     }
+    // Also register on server as pending
+    try{
+      fetch(SERVER+'/api/auth/register',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name,city,phone,status:'pending'})
+      }).catch(()=>{});
+    }catch(e){}
   }
+
   if(adm){
     try{showToast('🛡️ Admin access granted!');}catch(e){}
-    // Direct launch
     var pr=document.getElementById('ap-prof');if(pr)pr.style.display='none';
     var spl=document.getElementById('spl');if(spl)spl.style.display='flex';
     setTimeout(function(){
@@ -1560,9 +1571,9 @@ async function saveProfile(){
       try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
     },1500);
   } else {
-    // Show pending screen
     var pr=document.getElementById('ap-prof');if(pr)pr.style.display='none';
     var pp=document.getElementById('pp');if(pp)pp.classList.add('v');
+    showToast('✅ Request sent! Admin will approve soon.');
   }
 }
 
@@ -2560,35 +2571,42 @@ gel('adm-add-rishta').addEventListener('click',()=>gel('addrishta-btn').click())
 // APPROVE MEMBERS (all approved members)
 // ═══════════════════════════════════
 function renderApproveList(){
-  const pc=gel('pend-count');if(pc)pc.textContent=PENDING.length;
-  const apc=gel('ap-c');if(apc)apc.textContent=PENDING.length;
+  const pc=gel('pend-count');
+  const apc=gel('ap-c');
   const el=gel('approve-list');if(!el)return;
-  
-  // Also check server for new pending users
-  try{
-    fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}})
-      .then(r=>r.json())
-      .then(d=>{
-        if(d.pending&&d.pending.length){
-          d.pending.forEach(p=>{
-            if(!PENDING.find(x=>x.phone===p.phone)){
-              PENDING.push({
-                id:p.id||p._id||Date.now(),
-                name:p.name||'New User',
-                city:p.city||'Unknown',
-                phone:p.phone||'—',
-                requested:p.createdAt?new Date(p.createdAt).toLocaleString():'Recently'
-              });
-            }
-          });
-          if(pc)pc.textContent=PENDING.length;
-          if(apc)apc.textContent=PENDING.length;
-          renderApproveListUI();
-        }
-      }).catch(()=>{});
-  }catch(e){}
-  
-  renderApproveListUI();
+
+  // Show loading immediately
+  el.innerHTML='<div style="padding:30px;text-align:center;color:var(--t3);"><div style="font-size:1.5rem;">⏳</div><p style="margin-top:8px;">Loading pending requests...</p></div>';
+
+  // Always fetch from server fresh
+  fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}})
+    .then(r=>r.json())
+    .then(d=>{
+      const serverPending=d.pending||d||[];
+      if(Array.isArray(serverPending)&&serverPending.length){
+        serverPending.forEach(p=>{
+          const phone=p.phone||p.mobile||'';
+          if(!PENDING.find(x=>x.phone===phone)){
+            PENDING.push({
+              id:p.id||p._id||Date.now(),
+              name:p.name||'New User',
+              city:p.city||'Unknown',
+              phone:phone,
+              requested:p.createdAt?new Date(p.createdAt).toLocaleString():'Recently'
+            });
+          }
+        });
+      }
+      if(pc)pc.textContent=PENDING.length;
+      if(apc)apc.textContent=PENDING.length;
+      renderApproveListUI();
+    })
+    .catch(()=>{
+      // Server not available - show local PENDING
+      if(pc)pc.textContent=PENDING.length;
+      if(apc)apc.textContent=PENDING.length;
+      renderApproveListUI();
+    });
 }
 
 function renderApproveListUI(){
