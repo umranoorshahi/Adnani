@@ -804,8 +804,6 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
   <div class="nh"><span>🔔 Notifications (<span id="notif-count">3</span>)</span><button id="clear-notif">Clear all</button></div>
   <div id="notif-list">
     <div class="nitem" data-nid="1"><div class="niico" style="background:#dcfce7;">🤝</div><div class="nitxt"><h5>New member requesting approval</h5><p>Mohammad Usman — Mumbai</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span class="nit">Now</span><div class="notif-dot"></div></div></div>
-    <div class="nitem" data-nid="2"><div class="niico" style="background:#fef9c3;">💬</div><div class="nitxt"><h5>Message from Mahmood Ahmad</h5><p>Assalamu Alaikum! Meeting kal hai</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span class="nit">10:32</span><div class="notif-dot"></div></div></div>
-    <div class="nitem" data-nid="3"><div class="niico" style="background:#fce7f3;">❤️</div><div class="nitxt"><h5>Charity Drive — Last Day!</h5><p>Madrasa Fund — 80% complete</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span class="nit">Yesterday</span><div class="notif-dot"></div></div></div>
   </div>
 </div>
 
@@ -2682,8 +2680,12 @@ function approveByPhone(){
     localStorage.setItem('adnani_approved',JSON.stringify(approved));
   }catch(e){}
   inp.value='';
-  showToast('✅ '+ph+' approved! Unhe "Check Status" tap karne ko bolein.');
-  addNotification('✅','#dcfce7','Member Approved',ph+' ko access mil gaya');
+  showToast('✅ '+ph+' approved!');
+  // Single notification only
+  if(!window._lastApproved||window._lastApproved!==ph){
+    window._lastApproved=ph;
+    addNotification('✅','#dcfce7','Member Approved',ph+' ko access mil gaya');
+  }
   renderApproveListUI();
   renderMembers();
 }
