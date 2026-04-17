@@ -1486,7 +1486,7 @@ async function verifyOTP(){
           if(adl)adl.style.display='block';
         }
       }
-      try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
+      try{initApp();setTimeout(startApprovalPoller,2000);setTimeout(startMsgPoller,3000);}catch(e){}
     },1500);
   }
 
@@ -1578,7 +1578,7 @@ async function saveProfile(){
       var nav=document.getElementById('nav');if(nav)nav.style.display='flex';
       var app=document.getElementById('app');if(app)app.style.display='block';
       if(CU){var nm=document.getElementById('prof-nm');if(nm)nm.textContent=CU.name||'User';}
-      try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
+      try{initApp();setTimeout(startApprovalPoller,2000);setTimeout(startMsgPoller,3000);}catch(e){}
     },1500);
   } else {
     var pr=document.getElementById('ap-prof');if(pr)pr.style.display='none';
@@ -1640,7 +1640,7 @@ async function checkApproval(){
     var app=document.getElementById('app');if(app)app.style.display='block';
     showToast('✅ Approved! Welcome to Adnani Connected!');
     if(btn){btn.disabled=false;btn.textContent='🔄 Check Status';}
-    try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
+    try{initApp();setTimeout(startApprovalPoller,2000);setTimeout(startMsgPoller,3000);}catch(e){}
   }
 
   // Get my phone
@@ -2522,21 +2522,28 @@ on('feed-list','click',e=>{
   const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
 });
 function toggleLike(id){
-  const p=feedPosts.find(x=>x.id===id);
+  const p=feedPosts.find(x=>x.id===id||x._id===String(id));
   if(!p)return;
   p.liked=!p.liked;
   p.likes+=p.liked?1:-1;
-  // Save to localStorage
-  try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}
-  // Update like count display
+  // Update UI immediately
   const lc=document.getElementById('lc-'+id);
   if(lc)lc.textContent=p.likes;
-  // Update like button appearance
   const btn=document.querySelector('#pc-'+id+' [data-like]');
   if(btn){
     btn.innerHTML=(p.liked?'❤️':'♡')+' <span id="lc-'+id+'">'+p.likes+'</span>';
     btn.classList.toggle('lk',p.liked);
   }
+  // Save to server
+  const postId=p._id||String(id);
+  const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  try{
+    fetch(SERVER+'/api/posts/'+postId+'/like',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:myPhone})
+    }).catch(function(){});
+  }catch(e){}
 }
 function sharePostFn(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.shared=(p.shared||0)+1;const sc=gel('sc-'+id);if(sc)sc.textContent=p.shared;shareLink(p.text.slice(0,80)+'...');}
 function openComments(id){
@@ -2548,7 +2555,25 @@ function openComments(id){
 on('cmt-list','click',e=>{const db=e.target.closest('[data-cmt-del]');if(!db)return;const cid=Number(db.dataset.cmtDel),pid=Number(db.dataset.pid);const p=feedPosts.find(x=>x.id===pid);if(p){p.comments=p.comments.filter(c=>c.id!==cid);}db.closest('.cmt')?.remove();const cc=gel('cc-'+pid);if(cc)cc.textContent=(p?.comments.length||0);showToast('Comment deleted!');});
 on('cmt-send','click',submitComment);
 on('cmt-inp-txt','keypress',e=>{if(e.key==='Enter')submitComment();});
-function submitComment(){const inp=gel('cmt-inp-txt'),txt=inp.value.trim();if(!txt||!currentPostId)return;const p=feedPosts.find(x=>x.id===currentPostId);if(!p)return;const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);const nc={id:Date.now(),name:CU?.name||'You',text:txt};p.comments.push(nc);try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(_e){}gel('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=gel('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
+function submitComment(){
+  const inp=gel('cmt-inp-txt'),txt=inp.value.trim();
+  if(!txt||!currentPostId)return;
+  const p=feedPosts.find(x=>x.id===currentPostId||x._id===String(currentPostId));
+  if(!p)return;
+  const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);
+  const nc={id:Date.now(),name:CU&&CU.name||'You',text:txt};
+  p.comments.push(nc);
+  // Save to server
+  const postId=p._id||String(currentPostId);
+  const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  try{
+    fetch(SERVER+'/api/posts/'+postId+'/comment',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:myPhone,name:CU&&CU.name||'Member',text:txt})
+    }).catch(function(){});
+  }catch(e){}
+  try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(_e){}gel('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=gel('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
 
 // Post photos
 on('post-img-inp','change',function(){postImgs=[];const prev=gel('post-prev');prev.innerHTML='';Array.from(this.files).slice(0,4).forEach(f=>{const r=new FileReader();r.onload=e=>{postImgs.push(e.target.result);const w=document.createElement('div');w.className='prev-w';const img=document.createElement('img');img.src=e.target.result;const rm=document.createElement('button');rm.className='prev-rm';rm.textContent='✕';rm.onclick=()=>{w.remove();postImgs=postImgs.filter(x=>x!==e.target.result);};w.appendChild(img);w.appendChild(rm);prev.appendChild(w);};r.readAsDataURL(f);});});
@@ -2588,16 +2613,67 @@ gel('loc-post-btn').addEventListener('click',function(){
 on('post-submit-btn','click',async()=>{
   const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
   const np={id:Date.now(),name:CU?.name||'You',city:CU?.city||'',text:txt,time:'Just now',likes:0,liked:false,comments:[],shared:0,imgs:[...postImgs]};
+  // Save to SERVER first
+  try{
+    var postBody={
+      phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
+      name:CU&&CU.name||'Community',
+      city:CU&&CU.city||'',
+      text:txt,
+      imgs:postImgs
+    };
+    fetch(SERVER+'/api/posts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(postBody)
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      if(d.post){
+        np.id=d.post._id||np.id;
+        np._id=d.post._id;
+      }
+      // Reload posts from server
+      setTimeout(loadPosts,500);
+    }).catch(function(){});
+  }catch(e){}
+  
   feedPosts.unshift(np);
-  // Save to localStorage
-  try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}
-  renderFeed(feedPosts);gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
+  renderFeed(feedPosts);
+  gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
   showToast('Post shared!');
   addNotification('📰','#f0fdf4','Post Shared','Your post is now live in Community Feed');
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){try{new Notification('Adnani Connected',{body:'Your post is live!'});}catch(e){}}
   try{await fetch(SERVER+'/api/posts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({text:txt,phone})});}catch(e){}
 });
-async function loadPosts(){try{const r=await fetch(SERVER+'/api/posts',{headers:{'Authorization':'Bearer '+gTok()}});const d=await r.json();const posts=d.posts||d||[];if(Array.isArray(posts)&&posts.length){feedPosts=[...posts.map((p,i)=>({id:p.id||p._id||i+100,name:p.author||p.name||'Community',city:p.city||'',text:p.text||p.content||'',time:p.createdAt?new Date(p.createdAt).toLocaleDateString():'',likes:p.likes||0,liked:false,comments:[],shared:0})),...FEED_SEED];renderFeed(feedPosts);return;}}catch(e){}renderFeed(feedPosts);}
+async function loadPosts(){
+  try{
+    const r=await fetch(SERVER+'/api/posts');
+    const d=await r.json();
+    const posts=d.posts||[];
+    if(Array.isArray(posts)&&posts.length){
+      const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+      feedPosts=posts.map(function(p){
+        return {
+          id:p._id||p.id,
+          _id:p._id,
+          name:p.name||'Community',
+          city:p.city||'',
+          text:p.text||'',
+          time:p.createdAt?new Date(p.createdAt).toLocaleString():'',
+          likes:p.likes||0,
+          liked:Array.isArray(p.likedBy)&&p.likedBy.includes(myPhone),
+          comments:(p.comments||[]).map(function(cm){return{id:cm.id||cm._id,name:cm.name,text:cm.text};}),
+          shared:p.shared||0
+        };
+      });
+      renderFeed(feedPosts);
+      return;
+    }
+  }catch(e){}
+  // Fallback: show localStorage posts
+  try{var lp=JSON.parse(localStorage.getItem('adnani_posts')||'[]');if(lp.length){feedPosts=lp;}}catch(e){}
+  renderFeed(feedPosts);
+}
 
 // ═══════════════════════════════════
 // ADMIN PANEL
@@ -2770,7 +2846,10 @@ function approveByPhone(){
 
   // 4. Send WhatsApp with approval link
   var approvalLink='https://umranoorshahi.github.io/Adnani/#approve='+ph;
-  var waMsg='\u2705 Adnani Connected App mein aapko approve kar diya gaya hai!\n\nYeh link kholein aur app use karein:\n'+approvalLink+'\n\nAdmin: Sri Md. Irfan - 9839060377';
+  var waMsg='\u2705 Adnani Connected: Aapko approve kar diya gaya!\n\nYeh link tap karein:\n'+approvalLink;
+  // Open WhatsApp to member's number
+  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(waMsg),'_blank');
+  showToast('✅ '+ph+' approved! WhatsApp message bheja ja raha hai...');
 
   renderApproveListUI();
   renderMembers();
@@ -2886,12 +2965,33 @@ function openChat(id,name,type){
   gel('cw-nm').textContent=name;
   const m=MEMBERS.find(x=>x.id===id)||CHATS.find(x=>x.id===id);
   gel('cw-sub').textContent=(m?.online?'● Online':'○ Offline');
-  // Load saved messages or start fresh
-  if(!chatMsgs[id]){
-    try{
-      var saved=JSON.parse(localStorage.getItem('adnani_msg_'+id)||'[]');
-      chatMsgs[id]=saved;
-    }catch(e){chatMsgs[id]=[];}
+  // Load from server first
+  if(!chatMsgs[id])chatMsgs[id]=[];
+  const receiver2=MEMBERS.find(function(m){return m.id===id;});
+  const toPhone2=receiver2?String(receiver2.phone||'').replace(/[^0-9]/g,''):'';
+  const myPhone2=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  if(toPhone2&&myPhone2){
+    fetch(SERVER+'/api/messages/conversation?phone1='+myPhone2+'&phone2='+toPhone2)
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.messages&&d.messages.length){
+          chatMsgs[id]=d.messages.map(function(m){
+            return {
+              text:m.text,
+              sent:m.from_phone===myPhone2,
+              time:new Date(m.createdAt).getHours()+':'+String(new Date(m.createdAt).getMinutes()).padStart(2,'0'),
+              from:m.from_name
+            };
+          });
+          renderMsgs(id);
+        }
+      }).catch(function(){
+        // Fallback to localStorage
+        try{chatMsgs[id]=JSON.parse(localStorage.getItem('adnani_msg_'+id)||'[]');}catch(e){chatMsgs[id]=[];}
+        renderMsgs(id);
+      });
+  } else {
+    try{chatMsgs[id]=JSON.parse(localStorage.getItem('adnani_msg_'+id)||'[]');}catch(e){chatMsgs[id]=[];}
   }
   renderMsgs(id);gel('cwin').classList.add('on');
 }
@@ -2900,16 +3000,44 @@ function sendMsg(){
   const inp=gel('cw-inp'),txt=inp.value.trim();
   if(!txt||!activeChatId)return;
   const now=new Date(),time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  
+  // Add to local display immediately
+  if(!chatMsgs[activeChatId])chatMsgs[activeChatId]=[];
   chatMsgs[activeChatId].push({text:txt,sent:true,time});
-  try{localStorage.setItem('adnani_msg_'+activeChatId,JSON.stringify(chatMsgs[activeChatId].slice(-100)));}catch(e){}
-  inp.value='';renderMsgs(activeChatId);
-  try{fetch(SERVER+'/api/messages',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({to:activeChatId,text:txt})});}catch(e){}
-  // No auto-reply — real messages only
+  inp.value='';
+  renderMsgs(activeChatId);
+  
+  // Get receiver phone
+  const receiver=MEMBERS.find(function(m){return m.id===activeChatId;});
+  const toPhone=receiver?String(receiver.phone||'').replace(/[^0-9]/g,''):'';
+  const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  
+  // Save to server
+  try{
+    fetch(SERVER+'/api/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        from_phone:myPhone,
+        from_name:CU&&CU.name||'Member',
+        to_phone:toPhone,
+        text:txt
+      })
+    }).catch(function(){});
+  }catch(e){}
 }
 gel('cw-send').addEventListener('click',sendMsg);
 gel('cw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendMsg();});
 gel('cw-back').addEventListener('click',()=>{gel('cwin').classList.remove('on');activeChatId=null;});
-gel('cw-call').addEventListener('click',startCall);
+on('cw-call','click',function(){
+  var receiver=MEMBERS.find(function(m){return m.id===activeChatId;});
+  var ph=receiver?receiver.phone:'';
+  if(ph){
+    window.location.href='tel:'+ph;
+  } else {
+    showToast('Is member ka phone number available nahi hai');
+  }
+});
 gel('cw-vid').addEventListener('click',()=>showToast('Video calling...'));
 gel('cw-mic').addEventListener('click',function(){this.textContent=this.textContent==='🎤'?'🔇':'🎤';showToast(this.textContent==='🔇'?'Mic off':'Mic on');});
 ['cw-file','cw-cam'].forEach(id=>{const _e=gel(id);if(_e)_e.addEventListener('change',function(){if(!this.files[0])return;const r=new FileReader();r.onload=e=>{chatMsgs[activeChatId].push({img:e.target.result,text:'',sent:true,time:'Now'});renderMsgs(activeChatId);};r.readAsDataURL(this.files[0]);});});
@@ -3383,6 +3511,43 @@ gel('gw-file').addEventListener('change',function(){
 // (Group chat routing is already inside openChat above)
 
 // ═══════════════════════════════════════
+// MESSAGE POLLING - Check for new messages every 10s
+// ═══════════════════════════════════════
+var _lastMsgCheck=Date.now();
+function startMsgPoller(){
+  setInterval(function(){
+    if(!CU||!CU.phone)return;
+    var myPhone=String(CU.phone).replace(/[^0-9]/g,'');
+    fetch(SERVER+'/api/messages/new?phone='+myPhone+'&since='+_lastMsgCheck)
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.messages&&d.messages.length){
+          _lastMsgCheck=d.timestamp||Date.now();
+          d.messages.forEach(function(m){
+            // Find chat ID for this sender
+            var sender=MEMBERS.find(function(mb){return String(mb.phone||'').replace(/[^0-9]/g,'')===m.from_phone;});
+            var chatId=sender?sender.id:m.from_phone;
+            if(!chatMsgs[chatId])chatMsgs[chatId]=[];
+            chatMsgs[chatId].push({
+              text:m.text,
+              sent:false,
+              time:new Date(m.createdAt).getHours()+':'+String(new Date(m.createdAt).getMinutes()).padStart(2,'0'),
+              from:m.from_name
+            });
+            // If this chat is open, refresh it
+            if(activeChatId===chatId){renderMsgs(chatId);}
+            // Add notification
+            addNotification('💬','#dbeafe','New message from '+(m.from_name||'Member'),m.text.slice(0,50));
+            // Update unread count
+            var chatRow=CHATS.find(function(ch){return ch.id===chatId;});
+            if(chatRow){chatRow.unread=(chatRow.unread||0)+1;chatRow.last=m.text;chatRow.time='Now';}
+          });
+        }
+      }).catch(function(){});
+  },10000);
+}
+
+// ═══════════════════════════════════════
 // CHAT MENU — Clear/Block/Mute/Shortcut
 // ═══════════════════════════════════════
 var chatMuted={};
@@ -3575,7 +3740,7 @@ function _startApp(){
       if(onlyAdmin||u.isAdmin){
         var adl=document.getElementById('admin-link');if(adl)adl.style.display='block';
       }
-      try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
+      try{initApp();setTimeout(startApprovalPoller,2000);setTimeout(startMsgPoller,3000);}catch(e){}
     } else {
       // Show login screen
       var login=document.getElementById('ap-phone');
