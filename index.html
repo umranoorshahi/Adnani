@@ -601,8 +601,15 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 <div class="ap h" id="ap-prof">
   <div class="ab"><div class="al">👤</div><h1>Create Profile</h1><div class="org-name">One time setup</div></div>
   <div class="ac">
-    <div class="af"><label>Full Name *</label><input type="text" id="sn-inp" placeholder="Mohammad Ahmed" autocomplete="name"></div>
-    <div class="af"><label>City *</label><input type="text" id="sc-inp" placeholder="Lucknow" autocomplete="address-level2"></div>
+    <div class="af"><label>Poora Naam (Full Name) *</label><input type="text" id="sn-inp" placeholder="Mohammad Ahmed" autocomplete="name"></div>
+    <div class="af"><label>Walid ka Naam (Father's Name) *</label><input type="text" id="sf-inp" placeholder="Abdul Rahman" autocomplete="off"></div>
+    <div class="af"><label>Sheher (City) *</label><input type="text" id="sc-inp" placeholder="Lucknow" autocomplete="address-level2"></div>
+    <div class="af"><label>Mohalla / Gali / Address</label><input type="text" id="saddr-inp" placeholder="Mohalla, Gali No..." autocomplete="street-address"></div>
+    <div style="display:flex;gap:8px;">
+      <div class="af" style="flex:1"><label>Tahsil</label><input type="text" id="stahsil-inp" placeholder="Tahsil"></div>
+      <div class="af" style="flex:1"><label>Zila (District)</label><input type="text" id="sdistrict-inp" placeholder="District"></div>
+    </div>
+    <div class="af"><label>PIN Code</label><input type="tel" id="spin-inp" placeholder="226001" maxlength="6" inputmode="numeric"></div>
     <button class="abtn" id="sp-btn" onclick="saveProfile()">Save &amp; Continue →</button>
   </div>
 </div>
@@ -882,13 +889,10 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
   </div>
   <div class="srch"><input type="text" id="mem-srch" placeholder="Search name, city, role..." autocomplete="off"></div>
   <div class="fb" id="mem-fb">
-    <button class="fp on" data-filter="all">All</button>
+    <button class="fp on" data-filter="all">🌐 All</button>
     <button class="fp" data-filter="online">🟢 Online</button>
-    <button class="fp" data-filter="lucknow">Lucknow</button>
-    <button class="fp" data-filter="bahraich">Bahraich</button>
-    <button class="fp" data-filter="delhi">Delhi</button>
-    <button class="fp" data-filter="patna">Patna</button>
-    <button class="fp" data-filter="kolkata">Kolkata</button>
+    <button class="fp" data-filter="committee">🏛️ Committee</button>
+    <button class="fp" data-filter="appMembers">👥 Members</button>
   </div>
   <div id="mem-list"></div>
 </div>
@@ -1534,9 +1538,19 @@ async function verifyOTP(){
 async function saveProfile(){
   var nameInp=document.getElementById('sn-inp');
   var cityInp=document.getElementById('sc-inp');
+  var fatherInp=document.getElementById('sf-inp');
+  var addrInp=document.getElementById('saddr-inp');
+  var tahsilInp=document.getElementById('stahsil-inp');
+  var districtInp=document.getElementById('sdistrict-inp');
+  var pinInp=document.getElementById('spin-inp');
   const name=(nameInp?nameInp.value:'').trim();
   const city=(cityInp?cityInp.value:'').trim();
-  if(!name||!city){try{showToast('Name and city required');}catch(e){}return;}
+  const fatherName=(fatherInp?fatherInp.value:'').trim();
+  const address=(addrInp?addrInp.value:'').trim();
+  const tahsil=(tahsilInp?tahsilInp.value:'').trim();
+  const district=(districtInp?districtInp.value:'').trim();
+  const pincode=(pinInp?pinInp.value:'').trim();
+  if(!name||!city){try{showToast('Naam aur Sheher zaroori hai');}catch(e){}return;}
   const adm=isAdminPhone(phone);
 
   // Save profile to server
@@ -1545,7 +1559,7 @@ async function saveProfile(){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},
       body:JSON.stringify({name,city,phone})});
     const d=await r.json();
-    sUser({...CU,name,city,approved:adm?true:(d.approved||false),isAdmin:adm,role:adm?'admin':(d.role||'user')});
+    sUser({...CU,name,city,fatherName:fatherName||CU.fatherName||'',address:address||CU.address||'',tahsil:tahsil||CU.tahsil||'',district:district||CU.district||'',pincode:pincode||CU.pincode||'',approved:adm?true:(d.approved||false),isAdmin:adm,role:adm?'admin':(d.role||'user')});
   }catch(e){
     sUser({...CU,name,city,approved:adm,isAdmin:adm,role:adm?'admin':'user'});
   }
@@ -1560,11 +1574,18 @@ async function saveProfile(){
     }
     // Also register on server as pending
     try{
-      fetch(SERVER+'/api/auth/register',{
+      fetch(SERVER+'/api/simple/register',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name,city,phone,status:'pending'})
-      }).catch(()=>{});
+        body:JSON.stringify({
+          phone:phone,name:name,city:city,
+          fatherName:fatherName||'',
+          address:address||'',
+          tahsil:tahsil||'',
+          district:district||'',
+          pincode:pincode||''
+        })
+      }).catch(function(){});
     }catch(e){}
   }
 
@@ -2034,8 +2055,8 @@ function renderMembers(){
         ${m.address?`<p style="font-size:.64rem;color:var(--t4);margin-top:1px;">🏠 ${m.address}</p>`:''}
       </div>
       <div class="macts">
-        <button class="btn bp" data-action="chat" data-id="${m.id}" data-name="${m.name}" style="padding:5px 9px;font-size:.68rem;">Chat</button>
-        ${m.phone?`<a href="tel:${m.phone}" class="btn bo" style="padding:5px 9px;font-size:.68rem;text-decoration:none;">Call</a>`:''}
+        <button class="btn bp" data-action="chat" data-id="${m.id}" data-name="${m.name}" style="padding:5px 9px;font-size:.68rem;${String(m.phone||'').replace(/[^0-9]/g,'')===(CU&&String(CU.phone||'').replace(/[^0-9]/g,''))?'display:none':''}">Chat</button>
+        ${m.phone&&String(m.phone||'').replace(/[^0-9]/g,'')!==(CU&&String(CU.phone||'').replace(/[^0-9]/g,''))?`<a href="tel:${m.phone}" class="btn bo" style="padding:5px 9px;font-size:.68rem;text-decoration:none;">Call</a>`:''}
         ${isAdm?`<button class="edit-inline" data-edit-mem="${m.id}">Edit</button><button class="del-btn" data-del-mem="${m.id}">Del</button>`:''}
       </div>
     </div>`;
@@ -2499,21 +2520,24 @@ function renderFeed(posts){
   const el=gel('feed-list');if(!el)return;
   if(!posts.length){el.innerHTML='<div class="empty">No posts yet. Share something!</div>';return;}
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);
-  el.innerHTML=posts.map(p=>`
-    <div class="pcard" id="pc-${p.id}">
+  const myPh=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  el.innerHTML=posts.map(p=>{
+    const pid=p._id||p.id;
+    const canDel=isAdm||(String(p.phone||'').replace(/[^0-9]/g,'')==myPh);
+    return `<div class="pcard" id="pc-${pid}">
       <div class="ph">
         <div class="avi sm" style="background:${avC(p.name)};">${avI(p.name)}</div>
         <div class="phi"><h5>${p.name}</h5><span>${p.city?p.city+' · ':''}${p.time}</span></div>
-        ${isAdm?`<button class="post-more" data-post-del="${p.id}" title="Delete">🗑️</button>`:'<button class="post-more">⋯</button>'}
+        ${canDel?`<button class="post-more" data-post-del="${pid}" title="Delete">🗑️</button>`:''}
       </div>
-      <div class="pbody">${p.text}</div>
-      ${p.imgs&&p.imgs.length?`<div class="pimg">${p.imgs.map(i=>`<img src="${i}" alt="" loading="lazy" style="width:${100/Math.min(p.imgs.length,2)}%;max-height:200px;object-fit:cover;">`).join('')}</div>`:''}
+      <div class="pbody" style="white-space:pre-wrap;">${p.text}</div>
       <div class="pfoot">
-        <button class="pfb ${p.liked?'lk':''}" data-like="${p.id}">${p.liked?'❤️':'♡'} <span id="lc-${p.id}">${p.likes}</span></button>
-        <button class="pfb" data-comment="${p.id}">💬 <span id="cc-${p.id}">${p.comments.length}</span></button>
-        <button class="pfb" data-share-post="${p.id}">↗ <span id="sc-${p.id}">${p.shared||0}</span></button>
+        <button class="pfb ${p.liked?'lk':''}" data-like="${pid}">${p.liked?'❤️':'♡'} <span id="lc-${pid}">${p.likes}</span></button>
+        <button class="pfb" data-comment="${pid}">💬 <span id="cc-${pid}">${(p.comments||[]).length}</span></button>
+        <button class="pfb" data-share-post="${pid}">↗ ${p.shared||0}</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 on('feed-list','click',e=>{
   const lb=e.target.closest('[data-like]');if(lb)toggleLike(Number(lb.dataset.like));
@@ -2522,7 +2546,8 @@ on('feed-list','click',e=>{
   const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
 });
 function toggleLike(id){
-  const p=feedPosts.find(x=>x.id===id||x._id===String(id));
+  const sid=String(id);
+  const p=feedPosts.find(x=>String(x._id||x.id)===sid);
   if(!p)return;
   p.liked=!p.liked;
   p.likes+=p.liked?1:-1;
@@ -2613,33 +2638,29 @@ gel('loc-post-btn').addEventListener('click',function(){
 on('post-submit-btn','click',async()=>{
   const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
   const np={id:Date.now(),name:CU?.name||'You',city:CU?.city||'',text:txt,time:'Just now',likes:0,liked:false,comments:[],shared:0,imgs:[...postImgs]};
-  // Save to SERVER first
-  try{
-    var postBody={
-      phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
-      name:CU&&CU.name||'Community',
-      city:CU&&CU.city||'',
-      text:txt,
-      imgs:postImgs
-    };
-    fetch(SERVER+'/api/posts',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(postBody)
-    }).then(function(r){return r.json();})
-    .then(function(d){
-      if(d.post){
-        np.id=d.post._id||np.id;
-        np._id=d.post._id;
-      }
-      // Reload posts from server
-      setTimeout(loadPosts,500);
-    }).catch(function(){});
-  }catch(e){}
-  
-  feedPosts.unshift(np);
-  renderFeed(feedPosts);
-  gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
+  // Save to SERVER — then reload from server (prevents double post)
+  var postBody={
+    phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
+    name:CU&&CU.name||'Member',
+    city:CU&&CU.city||'',
+    text:txt
+  };
+  showToast('Posting...');
+  fetch(SERVER+'/api/posts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(postBody)
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
+    showToast('✅ Post published!');
+    loadPosts(); // Reload from server — single source of truth
+  }).catch(function(){
+    // Fallback: show locally
+    feedPosts.unshift(np);
+    renderFeed(feedPosts);
+    gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
+  });
   showToast('Post shared!');
   addNotification('📰','#f0fdf4','Post Shared','Your post is now live in Community Feed');
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){try{new Notification('Adnani Connected',{body:'Your post is live!'});}catch(e){}}
@@ -2773,9 +2794,14 @@ function renderApproveList(){
             PENDING.push({
               id:p._id||Date.now(),
               name:p.name||'New Member',
+              fatherName:p.fatherName||'',
               city:p.city||'—',
+              district:p.district||'',
+              address:p.address||'',
+              tahsil:p.tahsil||'',
+              pincode:p.pincode||'',
               phone:ph,
-              requested:p.registered_at?new Date(p.registered_at).toLocaleTimeString():'Recently'
+              requested:p.registered_at?new Date(p.registered_at).toLocaleString():'Recently'
             });
           }
         });
@@ -2868,11 +2894,13 @@ function renderApproveListUI(){
     <div class="pu" id="pend-${m.id}">
       ${mkAvi(m.name,'md')}
       <div class="pui">
-        <h4>${m.name}</h4>
-        <p style="font-size:.7rem;color:var(--t3);">
-          📞 ${m.phone||'—'} · 📍 ${m.city||'—'}
-        </p>
-        <p style="font-size:.65rem;color:var(--t4);">⏰ ${m.requested||'Recently'}</p>
+        <h4>${m.name||'New Member'}</h4>
+        <p style="font-size:.7rem;color:var(--t3);">📞 ${m.phone||'—'}</p>
+        <p style="font-size:.68rem;color:var(--t3);">👨 ${m.fatherName||'—'}</p>
+        <p style="font-size:.68rem;color:var(--t3);">📍 ${m.city||'—'}${m.district?', '+m.district:''}</p>
+        ${m.address?`<p style="font-size:.65rem;color:var(--t4);">🏠 ${m.address}${m.tahsil?', '+m.tahsil:''}</p>`:''}
+        ${m.pincode?`<p style="font-size:.65rem;color:var(--t4);">📮 ${m.pincode}</p>`:''}
+        <p style="font-size:.63rem;color:var(--t4);">⏰ ${m.requested||'Recently'}</p>
       </div>
       <div class="pub" style="flex-direction:column;gap:4px;">
         <button class="btn bp" style="font-size:.72rem;padding:5px 12px;" data-appv="${m.id}">✓ Approve</button>
