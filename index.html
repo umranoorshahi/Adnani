@@ -1540,13 +1540,9 @@ async function saveProfile(){
   if(!adm){
     const exists=PENDING.find(p=>p.phone===phone);
     if(!exists){
-      PENDING.push({
-        id:Date.now(),
-        name:name,
-        city:city,
-        phone:phone,
-        requested:new Date().toLocaleTimeString()
-      });
+      var _np={id:Date.now(),name:name,city:city,phone:phone,requested:new Date().toLocaleTimeString()};
+      PENDING.push(_np);
+      try{var _s=JSON.parse(localStorage.getItem('adnani_pending')||'[]');_s.push(_np);localStorage.setItem('adnani_pending',JSON.stringify(_s));}catch(_e){}
     }
     // Also register on server as pending
     try{
@@ -2575,38 +2571,46 @@ function renderApproveList(){
   const apc=gel('ap-c');
   const el=gel('approve-list');if(!el)return;
 
-  // Show loading immediately
-  el.innerHTML='<div style="padding:30px;text-align:center;color:var(--t3);"><div style="font-size:1.5rem;">⏳</div><p style="margin-top:8px;">Loading pending requests...</p></div>';
+  // Load from localStorage first (cross-device sharing)
+  try{
+    const stored=JSON.parse(localStorage.getItem('adnani_pending')||'[]');
+    stored.forEach(function(p){
+      if(!PENDING.find(function(x){return x.phone===p.phone;})){
+        PENDING.push(p);
+      }
+    });
+  }catch(e){}
 
-  // Always fetch from server fresh
+  if(pc)pc.textContent=PENDING.length;
+  if(apc)apc.textContent=PENDING.length;
+
+  // Show what we have immediately
+  renderApproveListUI();
+
+  // Also try server
   fetch(SERVER+'/api/users/pending',{headers:{'Authorization':'Bearer '+gTok()}})
-    .then(r=>r.json())
-    .then(d=>{
+    .then(function(r){return r.json();})
+    .then(function(d){
       const serverPending=d.pending||d||[];
       if(Array.isArray(serverPending)&&serverPending.length){
-        serverPending.forEach(p=>{
-          const phone=p.phone||p.mobile||'';
-          if(!PENDING.find(x=>x.phone===phone)){
+        serverPending.forEach(function(p){
+          const ph=p.phone||p.mobile||'';
+          if(!PENDING.find(function(x){return x.phone===ph;})){
             PENDING.push({
               id:p.id||p._id||Date.now(),
               name:p.name||'New User',
               city:p.city||'Unknown',
-              phone:phone,
+              phone:ph,
               requested:p.createdAt?new Date(p.createdAt).toLocaleString():'Recently'
             });
           }
         });
+        if(pc)pc.textContent=PENDING.length;
+        if(apc)apc.textContent=PENDING.length;
+        renderApproveListUI();
       }
-      if(pc)pc.textContent=PENDING.length;
-      if(apc)apc.textContent=PENDING.length;
-      renderApproveListUI();
     })
-    .catch(()=>{
-      // Server not available - show local PENDING
-      if(pc)pc.textContent=PENDING.length;
-      if(apc)apc.textContent=PENDING.length;
-      renderApproveListUI();
-    });
+    .catch(function(){});
 }
 
 function renderApproveListUI(){
@@ -2651,13 +2655,15 @@ on('approve-list','click',e=>{
         address:pending.city||'—'
       });
     }
-    PENDING=PENDING.filter(m=>m.id!==id);
+    PENDING=PENDING.filter(function(m){return m.id!==id;});
+    // Update localStorage too
+    try{localStorage.setItem('adnani_pending',JSON.stringify(PENDING));}catch(e){}
     ab.closest('.pu')?.remove();
     const pc=gel('pend-count');if(pc)pc.textContent=PENDING.length;
     const apc=gel('ap-c');if(apc)apc.textContent=PENDING.length;
     showToast('✅ Member approved!');
     addNotification('✅','#dcfce7','Member Approved','New member can now access the app');
-    renderMembers(); // refresh members list
+    renderMembers();
   }
   const rb=e.target.closest('[data-appv-rej]');
   if(rb){
