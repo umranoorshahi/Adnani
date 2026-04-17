@@ -1634,8 +1634,18 @@ async function checkApproval(){
   // Check localStorage approved list first (works without server)
   try{
     var approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
-    var myPhone=phone||'';
-    var isApproved=approved.find(function(a){return a.phone===myPhone;});
+    var myPhone=String(phone||'').replace(/\D/g,'');
+    // Also check saved user phone
+    var savedUser=null;
+    try{savedUser=JSON.parse(localStorage.getItem('usr')||'null');}catch(e){}
+    if(!myPhone&&savedUser)myPhone=String(savedUser.phone||'').replace(/\D/g,'');
+    var isApproved=approved.find(function(a){
+      return String(a.phone).replace(/\D/g,'')===myPhone;
+    });
+    // Check if user is already marked approved in saved data
+    if(!isApproved&&savedUser&&savedUser.approved){
+      isApproved={phone:myPhone};
+    }
     if(isApproved){
       var u=gUser();if(u){u.approved=true;sUser(u);}
       var pp=document.getElementById('pp');if(pp)pp.classList.remove('v');
@@ -2706,10 +2716,15 @@ function approveByPhone(){
   }catch(e){}
   inp.value='';
   showToast('✅ '+ph+' approved!');
-  // Single notification only
   if(!window._lastApproved||window._lastApproved!==ph){
     window._lastApproved=ph;
-    addNotification('✅','#dcfce7','Member Approved',ph+' ko access mil gaya');
+    addNotification('✅','#dcfce7','Member Approved',ph+' approved!');
+  }
+  // Generate approval link to share with member
+  var approvalLink='https://umranoorshahi.github.io/Adnani/#approve='+ph;
+  var waMsg='✅ Adnani Connected: Aapko approve kar diya gaya hai! Yeh link kholein aur app use karein:\n'+approvalLink;
+  if(confirm('✅ '+ph+' approved!\n\nKya unhe WhatsApp pe approval link bhejna chahte hain?')){
+    window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(waMsg),'_blank');
   }
   renderApproveListUI();
   renderMembers();
@@ -3457,6 +3472,28 @@ function _startApp(){
         return; // Stop here — Terms must be accepted first
       }
     }
+
+    // Check URL hash for approval token (#approve=PHONE)
+    try{
+      var hash=window.location.hash;
+      if(hash&&hash.startsWith('#approve=')){
+        var approvedPhone=hash.replace('#approve=','').replace(/\D/g,'');
+        if(approvedPhone){
+          var approvedList=JSON.parse(localStorage.getItem('adnani_approved')||'[]');
+          if(!approvedList.find(function(a){return a.phone===approvedPhone;})){
+            approvedList.push({phone:approvedPhone,approved_at:new Date().toISOString()});
+            localStorage.setItem('adnani_approved',JSON.stringify(approvedList));
+          }
+          // Also update user if this is their phone
+          var savedU=JSON.parse(localStorage.getItem('usr')||'null');
+          if(savedU&&String(savedU.phone).replace(/\D/g,'')===approvedPhone){
+            savedU.approved=true;
+            localStorage.setItem('usr',JSON.stringify(savedU));
+          }
+          window.location.hash=''; // clear hash
+        }
+      }
+    }catch(e){}
 
     // 3. Check if already logged in
     var tok=null,u=null;
