@@ -1863,13 +1863,15 @@ const COMMITTEE_IDS = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19])
 let NEW_MEMBERS = [];
 let PENDING=[]; // Real pending requests only
 let CHATS=[
-  {id:1, name:'Haji Mahmood Ahmad',   last:'Meeting kal hai — Jama Masjid 4 PM',      time:'10:32',unread:2,type:'direct'},
-  {id:2, name:'Sri Md. Irfan',        last:'Accounts check kar liye',                  time:'9:45', unread:0,type:'direct'},
-  {id:5, name:'Sri Abdul Karim',      last:'Jalsa ki tayaari ho gayi',                 time:'9:15', unread:1,type:'direct'},
-  {id:101,name:'Adnani Family Group', last:'Annual Jalsa 18 April — sab zaroor aayein',time:'8:45',unread:5,type:'group',members:18},
-  {id:102,name:'Biradari Network',    last:'Madrasa fund update dekh lein',            time:'7:30',unread:2,type:'group',members:12},
-  {id:103,name:'Quran Circle',        last:'Juma Surah Al-Kahf tilawat 9 AM',          time:'Yesterday',unread:0,type:'group',members:9},
+  {id:101,name:'Adnani Family Group', last:'Welcome to Adnani Connected!',time:'',unread:0,type:'group',members:18},
+  {id:102,name:'Biradari Network',    last:'',time:'',unread:0,type:'group',members:12},
+  {id:103,name:'Quran Circle',        last:'',time:'',unread:0,type:'group',members:9},
 ];
+// Load saved chats from localStorage
+try{
+  var _savedChats=JSON.parse(localStorage.getItem('adnani_chats')||'[]');
+  if(_savedChats.length)CHATS=_savedChats;
+}catch(e){}
 let BUSINESSES=[
   {id:1,name:'Mumtaz Sweets House',   type:'Trade',     desc:'Desi ghee mithai, traditional halwai products. Established, wholesale & retail.',phone:'',tags:['Sweets','Halwai','Wholesale'],city:'Rampur',color:'#7f1d1d'},
   {id:2,name:'Haspam Zanda Supplier', type:'Trade',     desc:'Zanda (flag) supplier, Bakar Ganj Patna. Bulk & retail supply.',               phone:'',tags:['Supplier','Trade'],city:'Patna',color:'#1d4ed8'},
@@ -1877,13 +1879,11 @@ let BUSINESSES=[
   {id:4,name:'Community Education',   type:'Education', desc:'Dr. Shaheen Anwar — Teacher & Medical. Community health & education support.',  phone:'',tags:['Education','Health'],city:'Bareilly',color:'#7c3aed'},
   {id:5,name:'Rafique Ahmad Services',type:'Services',  desc:'Auditor & Teacher — community financial services, Bahraich.',                  phone:'',tags:['Auditing','Teaching'],city:'Bahraich',color:'#166534'},
 ];
-let RISHTA=[
-  {id:1,name:'Ahmad (son of Mahmood)',type:'m',age:26,city:'Lucknow',edu:'B.Com',job:'Family Business',about:'Practicing Muslim, Hafiz-e-Quran, good character',ph:'9415061063'},
-  {id:2,name:'Sana Farooq',          type:'f',age:23,city:'Lucknow',edu:'BA (Urdu)',job:'Teacher',about:'Hafiza-e-Quran, religious, good family',ph:'9415072184'},
-  {id:3,name:'Bilal Ahmad Halwai',   type:'m',age:29,city:'Karachi',edu:'MBA',job:'Manager',about:'Settled, seeking pious educated girl',ph:'03012345678'},
-  {id:4,name:'Noor Fatima',          type:'f',age:22,city:'Delhi',edu:'BEd',job:'Tutor',about:'Religious, educated family, good cook',ph:'9811023456'},
-  {id:5,name:'Tariq Rashid',         type:'m',age:31,city:'Kanpur',edu:'BSc Engineering',job:'Engineer',about:'Good family, stable income, practicing Muslim',ph:'9839072345'},
-];
+// Load user-added businesses from localStorage
+try{var _sb=JSON.parse(localStorage.getItem('adnani_biz')||'[]');BUSINESSES=[...BUSINESSES,..._sb];}catch(e){}
+let RISHTA=[];
+// Load saved rishta from localStorage
+try{var _sr=JSON.parse(localStorage.getItem('adnani_rishta')||'[]');if(_sr.length)RISHTA=_sr;}catch(e){}
 let EVENTS=[
   {id:1,day:18,month:'Apr',name:'Annual Jalsa — Adnani Community',place:'Jama Masjid, Lucknow',type:'Religious',time:'After Asr',color:'#14532d'},
   {id:2,day:25,month:'Apr',name:'Business Meeting & AGM',place:'Community Hall, Lucknow',type:'Social',time:'11:00 AM',color:'#1d4ed8'},
@@ -2235,6 +2235,7 @@ gel('biz-sub').addEventListener('click',()=>{
   const obj={name:nm,type:gel('b-cat').value,desc:gel('b-desc').value||'—',phone:gel('b-ph').value||'—',tags:[gel('b-cat').value],city:gel('b-city').value||'—',color:'#374151'};
   if(editCtx.id){const i=BUSINESSES.findIndex(x=>x.id===editCtx.id);if(i>=0)BUSINESSES[i]={...BUSINESSES[i],...obj};}
   else BUSINESSES.push({id:Date.now(),...obj});
+  try{var ub=BUSINESSES.filter(function(b){return b.id>1000;});localStorage.setItem('adnani_biz',JSON.stringify(ub));}catch(e){}
   renderBusiness();closeSheet('biz');showToast(editCtx.id?'✅ Business updated!':'✅ Business added!');editCtx={type:'',id:null};
 });
 
@@ -2273,7 +2274,7 @@ on('rishta-list','click',e=>{
   if(e.target.closest('[data-rishta-contact]'))openChat(1,'Mahmood Ahmad (Rishta Inquiry)','direct');
   if(e.target.closest('[data-rishta-int]'))showToast('Interest noted. Admin will contact you.');
   const er=e.target.closest('[data-edit-rishta]');if(er){const r=RISHTA.find(x=>x.id===Number(er.dataset.editRishta));if(r){gel('r-nm').value=r.name;gel('r-gen').value=r.type;gel('r-age').value=r.age;gel('r-city').value=r.city;gel('r-edu').value=r.edu;gel('r-job').value=r.job;gel('r-about').value=r.about;gel('r-ph').value=r.ph||'';editCtx={type:'rishta',id:r.id};openSheet('rishta');}}
-  const dr=e.target.closest('[data-del-rishta]');if(dr&&confirm('Delete this rishta entry?')){RISHTA.splice(RISHTA.findIndex(x=>x.id===Number(dr.dataset.delRishta)),1);renderRishta();showToast('Entry deleted.');}
+  const dr=e.target.closest('[data-del-rishta]');if(dr&&confirm('Delete this rishta entry?')){RISHTA.splice(RISHTA.findIndex(x=>x.id===Number(dr.dataset.delRishta)),1);try{localStorage.setItem('adnani_rishta',JSON.stringify(RISHTA));}catch(e){}renderRishta();showToast('Entry deleted.');}
 });
 gel('addrishta-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['r-nm','r-age','r-city','r-edu','r-job','r-about','r-ph'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});openSheet('rishta');});
 gel('rishta-sub').addEventListener('click',()=>{
@@ -2282,6 +2283,7 @@ gel('rishta-sub').addEventListener('click',()=>{
   const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone};
   if(editCtx.id){const i=RISHTA.findIndex(x=>x.id===editCtx.id);if(i>=0)RISHTA[i]={...RISHTA[i],...obj};}
   else RISHTA.push({id:Date.now(),...obj});
+  try{localStorage.setItem('adnani_rishta',JSON.stringify(RISHTA));}catch(e){}
   renderRishta();closeSheet('rishta');showToast(editCtx.id?'✅ Updated!':'✅ Rishta registered!');editCtx={type:'',id:null};
   if(!editCtx.id)addNotification('💍','#fce7f3','New Rishta Registration',nm+' — '+obj.city);
 });
@@ -2393,11 +2395,11 @@ gel('paysettings-sub').addEventListener('click',()=>{
 // ═══════════════════════════════════
 // FEED
 // ═══════════════════════════════════
-const FEED_SEED=[
-  {id:1,name:'Mahmood Ahmad',city:'Lucknow',text:'بِسْمِ اللَّهِ\nAssalamu Alaikum to all members! Annual Jalsa will be held on 18th April after Asr prayers at Jama Masjid, Lucknow. All members are requested to attend. Please confirm. 🕌',time:'Today 10:30',likes:14,liked:false,comments:[{id:1,name:'Abdul Rehman Halwai',text:'InshaaAllah will attend!'},{id:2,name:'Tariq Ahmad Siddiqui',text:'JazakAllah for the reminder.'}],shared:6},
-  {id:2,name:'Mohammad Farooq',city:'Kanpur',text:'Madrasa Construction Fund Update:\n\n✅ Amount collected: ₹4,80,000\n⏳ Remaining: ₹1,20,000\n\nPlease contribute generously. May Allah reward everyone. 🤲',time:'Today 8:00',likes:22,liked:false,comments:[{id:3,name:'Mahmood Ahmad',text:'MashaAllah! Great effort by all. Keep it up.'}],shared:9},
-];
-feedPosts=[...FEED_SEED];
+// Load posts from localStorage (real user posts)
+try{
+  var _fp=JSON.parse(localStorage.getItem('adnani_posts')||'[]');
+  if(_fp.length){feedPosts=_fp;}
+}catch(e){}
 
 function renderFeed(posts){
   const el=gel('feed-list');if(!el)return;
@@ -2423,13 +2425,15 @@ on('feed-list','click',e=>{
   const lb=e.target.closest('[data-like]');if(lb)toggleLike(Number(lb.dataset.like));
   const cb=e.target.closest('[data-comment]');if(cb)openComments(Number(cb.dataset.comment));
   const sb=e.target.closest('[data-share-post]');if(sb)sharePostFn(Number(sb.dataset.sharePost));
-  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
+  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
 });
 function toggleLike(id){
   const p=feedPosts.find(x=>x.id===id);
   if(!p)return;
   p.liked=!p.liked;
   p.likes+=p.liked?1:-1;
+  // Save to localStorage
+  try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}
   // Update like count display
   const lc=document.getElementById('lc-'+id);
   if(lc)lc.textContent=p.likes;
@@ -2450,7 +2454,7 @@ function openComments(id){
 on('cmt-list','click',e=>{const db=e.target.closest('[data-cmt-del]');if(!db)return;const cid=Number(db.dataset.cmtDel),pid=Number(db.dataset.pid);const p=feedPosts.find(x=>x.id===pid);if(p){p.comments=p.comments.filter(c=>c.id!==cid);}db.closest('.cmt')?.remove();const cc=gel('cc-'+pid);if(cc)cc.textContent=(p?.comments.length||0);showToast('Comment deleted!');});
 on('cmt-send','click',submitComment);
 on('cmt-inp-txt','keypress',e=>{if(e.key==='Enter')submitComment();});
-function submitComment(){const inp=gel('cmt-inp-txt'),txt=inp.value.trim();if(!txt||!currentPostId)return;const p=feedPosts.find(x=>x.id===currentPostId);if(!p)return;const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);const nc={id:Date.now(),name:CU?.name||'You',text:txt};p.comments.push(nc);gel('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=gel('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
+function submitComment(){const inp=gel('cmt-inp-txt'),txt=inp.value.trim();if(!txt||!currentPostId)return;const p=feedPosts.find(x=>x.id===currentPostId);if(!p)return;const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);const nc={id:Date.now(),name:CU?.name||'You',text:txt};p.comments.push(nc);try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(_e){}gel('cmt-list').innerHTML+=`<div class="cmt" id="cmt-${nc.id}"><div class="avi sm" style="background:${avC(nc.name)};">${avI(nc.name)}</div><div class="cmt-body"><h6>${nc.name}</h6><p>${nc.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${nc.id}" data-pid="${currentPostId}">🗑️</button>`:''}</div>`;const cc=gel('cc-'+currentPostId);if(cc)cc.textContent=p.comments.length;inp.value='';showToast('Comment posted!');}
 
 // Post photos
 on('post-img-inp','change',function(){postImgs=[];const prev=gel('post-prev');prev.innerHTML='';Array.from(this.files).slice(0,4).forEach(f=>{const r=new FileReader();r.onload=e=>{postImgs.push(e.target.result);const w=document.createElement('div');w.className='prev-w';const img=document.createElement('img');img.src=e.target.result;const rm=document.createElement('button');rm.className='prev-rm';rm.textContent='✕';rm.onclick=()=>{w.remove();postImgs=postImgs.filter(x=>x!==e.target.result);};w.appendChild(img);w.appendChild(rm);prev.appendChild(w);};r.readAsDataURL(f);});});
@@ -2490,7 +2494,10 @@ gel('loc-post-btn').addEventListener('click',function(){
 on('post-submit-btn','click',async()=>{
   const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
   const np={id:Date.now(),name:CU?.name||'You',city:CU?.city||'',text:txt,time:'Just now',likes:0,liked:false,comments:[],shared:0,imgs:[...postImgs]};
-  feedPosts.unshift(np);renderFeed(feedPosts);gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
+  feedPosts.unshift(np);
+  // Save to localStorage
+  try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}
+  renderFeed(feedPosts);gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
   showToast('Post shared!');
   addNotification('📰','#f0fdf4','Post Shared','Your post is now live in Community Feed');
   if(typeof Notification!=='undefined'&&Notification.permission==='granted'){try{new Notification('Adnani Connected',{body:'Your post is live!'});}catch(e){}}
@@ -2720,7 +2727,13 @@ function openChat(id,name,type){
   gel('cw-nm').textContent=name;
   const m=MEMBERS.find(x=>x.id===id)||CHATS.find(x=>x.id===id);
   gel('cw-sub').textContent=(m?.online?'● Online':'○ Offline');
-  if(!chatMsgs[id])chatMsgs[id]=[{text:'Assalamu Alaikum!',sent:false,time:'10:30'},{text:'Wa Alaikum Assalam! Alhamdulillah.',sent:true,time:'10:31'}];
+  // Load saved messages or start fresh
+  if(!chatMsgs[id]){
+    try{
+      var saved=JSON.parse(localStorage.getItem('adnani_msg_'+id)||'[]');
+      chatMsgs[id]=saved;
+    }catch(e){chatMsgs[id]=[];}
+  }
   renderMsgs(id);gel('cwin').classList.add('on');
 }
 function renderMsgs(id){const msgs=chatMsgs[id]||[];gel('cw-body').innerHTML=msgs.map(m=>`<div class="bub ${m.sent?'out':'in'}">${m.img?`<img src="${m.img}" alt="">`:''}${m.text?`<span>${m.text}</span>`:''}<div class="bt">${m.time}</div></div>`).join('');const b=gel('cw-body');b.scrollTop=b.scrollHeight;}
@@ -2729,16 +2742,10 @@ function sendMsg(){
   if(!txt||!activeChatId)return;
   const now=new Date(),time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   chatMsgs[activeChatId].push({text:txt,sent:true,time});
+  try{localStorage.setItem('adnani_msg_'+activeChatId,JSON.stringify(chatMsgs[activeChatId].slice(-100)));}catch(e){}
   inp.value='';renderMsgs(activeChatId);
   try{fetch(SERVER+'/api/messages',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({to:activeChatId,text:txt})});}catch(e){}
-  setTimeout(()=>{
-    const rs=['JazakAllah Khair! 🌟','InshaaAllah! 🤲','Alhamdulillah!','Ameen! 🕌','MashaAllah! BarakAllahFik'];
-    const reply=rs[Math.floor(Math.random()*rs.length)];
-    chatMsgs[activeChatId].push({text:reply,sent:false,time});
-    renderMsgs(activeChatId);
-    // Push notification for incoming message
-    addNotification('💬','#dbeafe','Message from '+activeChatName,reply.slice(0,40));
-  },1400);
+  // No auto-reply — real messages only
 }
 gel('cw-send').addEventListener('click',sendMsg);
 gel('cw-inp').addEventListener('keypress',e=>{if(e.key==='Enter')sendMsg();});
