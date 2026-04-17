@@ -1633,7 +1633,7 @@ function launchApp(){
     gel('app').style.display='block';
     if(CU){
       gel('prof-nm').textContent=CU.name||'User';
-      gel('prof-cy').textContent=(CU.city||'')+(CU.isAdmin?' · Admin':' · Member');
+      gel('prof-cy').textContent=(CU.city||'')+(CU.isAdmin?' · Admin':CU.isSuperUser?' · Member':' · Member');
       setAvi(gel('prof-av'),CU.name||'U');
       setAvi(gel('pc-av'),CU.name||'U');
       setAvi(gel('cmt-av'),CU.name||'U');
@@ -3359,13 +3359,35 @@ function _startApp(){
     try{u=JSON.parse(localStorage.getItem('usr'));}catch(e){}
 
     if(tok&&u&&u.name){
-      // Already logged in — show app
+      // ALWAYS re-check phone for admin/superuser status
+      // This fixes stale localStorage data issue
+      var ph=String(u.phone||'').replace(/\D/g,'');
+      var onlyAdmin=(ph==='9839060377');
+      var isSuperUser=(ph==='9415061063'||ph==='9918717288');
+      var isSpecial=onlyAdmin||isSuperUser;
+      if(isSpecial){
+        u.isAdmin=onlyAdmin;
+        u.isSuperUser=isSuperUser;
+        u.canApprove=true;
+        u.approved=true;
+        u.role=onlyAdmin?'admin':'member';
+      }
       CU=u;
+      // Save corrected user back
+      try{localStorage.setItem('usr',JSON.stringify(u));}catch(e){}
       var hdr=document.getElementById('hdr');if(hdr)hdr.style.display='flex';
       var nav=document.getElementById('nav');if(nav)nav.style.display='flex';
       var app=document.getElementById('app');if(app)app.style.display='block';
       var nm=document.getElementById('prof-nm');if(nm)nm.textContent=u.name||'User';
-      try{initApp();}catch(e){}
+      // Show approve button for special users
+      if(isSpecial||u.canApprove){
+        var al=document.getElementById('approve-link');if(al)al.style.display='block';
+        var pc=document.getElementById('pend-count');if(pc)pc.textContent=PENDING.length;
+      }
+      if(onlyAdmin||u.isAdmin){
+        var adl=document.getElementById('admin-link');if(adl)adl.style.display='block';
+      }
+      try{initApp();setTimeout(startApprovalPoller,2000);}catch(e){}
     } else {
       // Show login screen
       var login=document.getElementById('ap-phone');
