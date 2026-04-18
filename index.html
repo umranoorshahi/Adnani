@@ -193,6 +193,10 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 .macts{display:flex;gap:4px;flex-shrink:0;}
 .avwrap{position:relative;flex-shrink:0;}
 
+/* UNDO TOAST */
+@keyframes slideUp{from{transform:translate(-50%,20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+#undo-toast{animation:slideUp .2s ease;}
+
 /* APPROVAL CARDS */
 .apcard{background:var(--s1);border-radius:14px;margin:10px 12px;padding:14px;box-shadow:var(--sh1);border-left:4px solid var(--p2);}
 .apcard .apc-name{font-size:.95rem;font-weight:700;color:var(--t1);margin-bottom:2px;}
@@ -1166,6 +1170,7 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
   <!-- Logout -->
   <div style="margin:10px 12px 20px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div class="sitem" id="lgout-item"><div class="sico" style="background:#fee2e2;">🚪</div><span class="sl" style="color:#dc2626;font-weight:600;">Logout</span><span class="sv">›</span></div>
+    <div class="sitem" id="del-account-item" style="opacity:.7;"><div class="sico" style="background:#fee2e2;">🗑️</div><span class="sl" style="color:#dc2626;font-size:.82rem;">Delete Account</span><span class="sv">›</span></div>
   </div>
 </div>
 
@@ -1322,6 +1327,13 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
   <div class="ig"><label>Profession</label><input type="text" id="r-job" placeholder="Teacher, Business..."></div>
   <div class="ig"><label>Family Background &amp; Details</label><textarea id="r-about" placeholder="Family details, preferences, requirements..."></textarea></div>
   <div class="ig"><label>Your Contact Number (shown to admin only)</label><input type="tel" id="r-ph" placeholder="Your own number" style="direction:ltr;"></div>
+  <div class="ig"><label>Visibility</label>
+    <select id="r-vis" style="width:100%;padding:9px;border:1.5px solid var(--s3);border-radius:8px;font-size:.88rem;background:var(--bg);color:var(--t1);">
+      <option value="members">✅ Sirf Approved Members</option>
+      <option value="admin">🔒 Admin Only</option>
+      <option value="public">🌐 Sabko dikhaye</option>
+    </select>
+  </div>
   <button class="btn bp bfull" id="rishta-sub" style="margin-top:4px;">Register ✓</button>
 </div></div>
 
@@ -1703,11 +1715,27 @@ async function saveProfile(){
 
   // Save profile to server
   try{
-    const r=await fetch(SERVER+'/api/auth/profile',{method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},
-      body:JSON.stringify({name,city,phone})});
-    const d=await r.json();
-    sUser({...CU,name,city,fatherName:fatherName||CU.fatherName||'',address:address||CU.address||'',tahsil:tahsil||CU.tahsil||'',district:district||CU.district||'',pincode:pincode||CU.pincode||'',approved:adm?true:(d.approved||false),isAdmin:adm,role:adm?'admin':(d.role||'user')});
+    // Optimistic update — save immediately to localStorage
+    const updatedUser={...CU,name,city,
+      fatherName:fatherName||CU.fatherName||'',
+      address:address||CU.address||'',
+      tahsil:tahsil||CU.tahsil||'',
+      district:district||CU.district||'',
+      pincode:pincode||CU.pincode||'',
+      isAdmin:adm,role:adm?'admin':(CU.role||'user')
+    };
+    sUser(updatedUser);
+    // Then sync with server
+    try{
+      const r=await fetch(SERVER+'/api/auth/profile',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},
+        body:JSON.stringify({name,city,phone,fatherName,address,tahsil,district,pincode})
+      });
+      const d=await r.json();
+      if(d.approved!==undefined){sUser({...updatedUser,approved:adm?true:d.approved});}
+    }catch(e){/* offline - local save ok */}
+    updateProfileDisplay();
   }catch(e){
     sUser({...CU,name,city,approved:adm,isAdmin:adm,role:adm?'admin':'user'});
   }
@@ -2021,6 +2049,21 @@ on('dark-item','click',toggleDark);
 on('perm-item','click',reqPerms);
 on('share-app-item','click',shareApp);
 on('lgout-item','click',doLogout);
+// Account delete
+on('del-account-item','click',function(){
+  if(!CU||!CU.phone)return;
+  if(!confirm('Account delete karna chahte hain?\n\nYeh nahin undo ho sakta!'))return;
+  showToast('\u29d1 Deleting account...');
+  fetch(SERVER+'/api/simple/delete-account',{
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({phone:String(CU.phone).replace(/[^0-9]/g,'')})
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(d.success){showToast('Account deleted');setTimeout(doLogout,1500);}
+    else{showToast(d.error||'Error. Try again.');}
+  }).catch(function(){doLogout();});
+});
 on('admin-nav-item','click',()=>showScreen('admin'));
 on('pay-settings-item','click',()=>openSheet('paysettings'));
 on('approve-nav-item','click',()=>showScreen('approve'));
@@ -2545,6 +2588,17 @@ gel('biz-sub').addEventListener('click',()=>{
 // RISHTA
 // ═══════════════════════════════════
 let rishtaFilter='all';
+function filterRishta(list){
+  if(!list)return[];
+  var myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  var isAdm=CU&&(CU.isAdmin||CU.isSuperUser||CU.canApprove);
+  return list.filter(function(r){
+    if(!r.visibility||r.visibility==='members'||r.visibility==='public')return true;
+    if(r.visibility==='admin')return isAdm||r.createdBy===myPhone;
+    if(r.createdBy===myPhone)return true;
+    return false;
+  });
+}
 function renderRishta(){
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);
   const list=rishtaFilter==='all'?RISHTA:RISHTA.filter(r=>rishtaFilter==='m'||rishtaFilter==='f'?r.type===rishtaFilter:r.city.toLowerCase().includes(rishtaFilter));
@@ -2582,7 +2636,9 @@ gel('addrishta-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['r
 gel('rishta-sub').addEventListener('click',()=>{
   const nm=gel('r-nm').value.trim();if(!nm){showToast('Name required');return;}
   const userPhone=gel('r-ph').value.trim()||phone||'';
-  const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone};
+  const visEl=gel('r-vis');
+  const visibility=visEl?visEl.value:'members';
+  const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone,visibility:visibility,createdBy:String(CU&&CU.phone||'').replace(/[^0-9]/g,'')};
   if(editCtx.id){const i=RISHTA.findIndex(x=>x.id===editCtx.id);if(i>=0)RISHTA[i]={...RISHTA[i],...obj};}
   else RISHTA.push({id:Date.now(),...obj});
   try{localStorage.setItem('adnani_rishta',JSON.stringify(RISHTA));}catch(e){}
@@ -2731,16 +2787,31 @@ on('feed-list','click',e=>{
   const cb=e.target.closest('[data-comment]');if(cb)openComments(cb.dataset.comment);
   const sb=e.target.closest('[data-share-post]');if(sb)sharePostFn(sb.dataset.sharePost);
   const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){const delId=db.dataset.postDel;
-    const delPost=feedPosts.find(x=>String(x._id||x.id)===String(delId));
+    const delPost=feedPosts.find(function(x){return String(x._id||x.id)===String(delId);});
     const myPh=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
-    // Anyone can delete own post
-    if(delPost&&(String(delPost.phone||'').replace(/[^0-9]/g,'')===myPh||isAdm)){
-      feedPosts=feedPosts.filter(p=>String(p._id||p.id)!==String(delId));
-      gel('pc-'+delId)?.remove();
-      showToast('Post deleted.');
-      // Delete from server
-      if(delPost._id){fetch(SERVER+'/api/posts/'+delPost._id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:myPh})}).catch(()=>{});}
-    } else {showToast('Sirf apni post delete kar sakte hain');}}
+    if(!delPost||(String(delPost.phone||'').replace(/[^0-9]/g,'')!==myPh&&!isAdm)){
+      showToast('Sirf apni post delete kar sakte hain');return;
+    }
+    // Remove from UI
+    const delIdx=feedPosts.findIndex(function(x){return String(x._id||x.id)===String(delId);});
+    feedPosts.splice(delIdx,1);
+    gel('pc-'+delId)?.remove();
+    // Undo toast — 30 seconds
+    showUndoToast('Post deleted',function(){
+      feedPosts.splice(delIdx,0,delPost);
+      renderFeed(feedPosts);
+      showToast('↩ Post restored!');
+    });
+    // Server delete after 30s (undo window)
+    setTimeout(function(){
+      if(delPost._id){
+        fetch(SERVER+'/api/posts/'+delPost._id,{
+          method:'DELETE',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({phone:myPh})
+        }).catch(function(){});
+      }
+    },30000);}
 });
 function toggleLike(id){
   const sid=String(id);
@@ -2768,13 +2839,149 @@ function toggleLike(id){
   }catch(e){}
 }
 function sharePostFn(id){const p=feedPosts.find(x=>x.id===id);if(!p)return;p.shared=(p.shared||0)+1;const sc=gel('sc-'+id);if(sc)sc.textContent=p.shared;shareLink(p.text.slice(0,80)+'...');}
+// undo stack for delete
+var _undoStack=[];
+
+function showUndoToast(msg,undoFn){
+  var existing=document.getElementById('undo-toast');
+  if(existing)existing.remove();
+  var div=document.createElement('div');
+  div.id='undo-toast';
+  div.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:10px;font-size:.82rem;z-index:9999;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:90vw;';
+  var txt=document.createTextNode(msg+' ');
+  var btn=document.createElement('button');
+  btn.textContent='↩ Undo (30s)';
+  btn.style.cssText='background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.78rem;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+  btn.addEventListener('click',function(){
+    if(undoFn)undoFn();
+    div.remove();
+  });
+  div.appendChild(txt);
+  div.appendChild(btn);
+  document.body.appendChild(div);
+  var timer=setTimeout(function(){if(document.body.contains(div))div.remove();},30000);
+  // Progress indicator
+  div.style.transition='opacity 0.5s';
+  setTimeout(function(){div.style.opacity='0.7';},25000);
+}
+
 function openComments(id){
-  currentPostId=id;const p=feedPosts.find(x=>x.id===id);if(!p)return;
+  currentPostId=id;
+  const sid=String(id);
+  const p=feedPosts.find(x=>String(x._id||x.id)===sid);
+  if(!p)return;
+  const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
   const isAdm=CU&&(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove);
-  gel('cmt-list').innerHTML=p.comments.length?p.comments.map(c=>`<div class="cmt" id="cmt-${c.id}"><div class="avi sm" style="background:${avC(c.name)};">${avI(c.name)}</div><div class="cmt-body"><h6>${c.name}</h6><p>${c.text}</p></div>${isAdm?`<button class="cmt-del" data-cmt-del="${c.id}" data-pid="${id}">🗑️</button>`:''}</div>`).join(''):'<div style="padding:14px;text-align:center;color:var(--t4);font-size:.82rem;">No comments yet. Be the first!</div>';
+  
+  function renderCommentsList(){
+    gel('cmt-list').innerHTML=(p.comments||[]).length?
+      p.comments.map(function(cm){
+        const isMine=String(cm.phone||'').replace(/[^0-9]/g,'')===myPhone||cm.name===(CU&&CU.name);
+        const canDel=isMine||isAdm;
+        return `<div class="cmt" id="cmt-${cm.id}">
+          <div class="avi sm" style="background:${avC(cm.name)};">${avI(cm.name)}</div>
+          <div class="cmt-body" style="flex:1;">
+            <h6 style="font-size:.78rem;font-weight:700;">${cm.name}</h6>
+            <p id="cmt-txt-${cm.id}" style="font-size:.82rem;">${cm.text}</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+            ${isMine?`<button onclick="editComment('${cm.id}','${p._id||id}')" style="font-size:.65rem;padding:2px 6px;background:var(--s2);border:none;border-radius:4px;color:var(--t3);cursor:pointer;">✏️</button>`:''}
+            ${canDel?`<button onclick="deleteComment('${cm.id}','${p._id||id}')" style="font-size:.65rem;padding:2px 6px;background:#fee2e2;border:none;border-radius:4px;color:#dc2626;cursor:pointer;">🗑️</button>`:''}
+          </div>
+        </div>`;
+      }).join('')
+      :'<div style="padding:20px;text-align:center;color:var(--t4);font-size:.82rem;">No comments yet. Be the first! 💬</div>';
+  }
+  renderCommentsList();
+  // Store renderer for updates
+  gel('cmt-list')._rerender=renderCommentsList;
+  gel('cmt-list')._post=p;
   openSheet('comment');
 }
-on('cmt-list','click',e=>{const db=e.target.closest('[data-cmt-del]');if(!db)return;const cid=Number(db.dataset.cmtDel),pid=Number(db.dataset.pid);const p=feedPosts.find(x=>x.id===pid);if(p){p.comments=p.comments.filter(c=>c.id!==cid);}db.closest('.cmt')?.remove();const cc=gel('cc-'+pid);if(cc)cc.textContent=(p?.comments.length||0);showToast('Comment deleted!');});
+
+function editComment(cmtId,postId){
+  const list=gel('cmt-list');
+  const p=list._post;
+  if(!p)return;
+  const cm=p.comments.find(function(x){return String(x.id)===String(cmtId);});
+  if(!cm)return;
+  const txtEl=gel('cmt-txt-'+cmtId);
+  if(!txtEl)return;
+  const orig=cm.text;
+  // Build edit UI with DOM (no innerHTML with expressions)
+  var editWrap=document.createElement('div');
+  var editInp=document.createElement('input');
+  editInp.id='cmt-edit-inp-'+cmtId;
+  editInp.value=orig;
+  editInp.style.cssText='width:100%;padding:5px 8px;border:1.5px solid var(--p2);border-radius:6px;font-size:.82rem;background:var(--bg);color:var(--t1);box-sizing:border-box;';
+  var btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:4px;margin-top:4px;';
+  var saveBtn=document.createElement('button');
+  saveBtn.textContent='Save';
+  saveBtn.style.cssText='padding:4px 10px;background:var(--p2);color:#fff;border:none;border-radius:6px;font-size:.72rem;cursor:pointer;';
+  saveBtn.onclick=function(){saveEditComment(cmtId,postId);};
+  var cancelBtn=document.createElement('button');
+  cancelBtn.textContent='Cancel';
+  cancelBtn.style.cssText='padding:4px 8px;background:var(--s2);border:none;border-radius:6px;font-size:.72rem;cursor:pointer;';
+  cancelBtn.onclick=function(){cancelEditComment(cmtId,orig);};
+  btnRow.appendChild(saveBtn);
+  btnRow.appendChild(cancelBtn);
+  editWrap.appendChild(editInp);
+  editWrap.appendChild(btnRow);
+  txtEl.innerHTML='';
+  txtEl.appendChild(editWrap);
+  editInp.focus();
+}
+
+function cancelEditComment(cmtId,orig){
+  const txtEl=gel('cmt-txt-'+cmtId);
+  if(txtEl)txtEl.innerHTML=orig;
+}
+
+function saveEditComment(cmtId,postId){
+  const inp=document.getElementById('cmt-edit-inp-'+cmtId);
+  if(!inp)return;
+  const newText=inp.value.trim();
+  if(!newText){showToast('Comment cannot be empty');return;}
+  const list=gel('cmt-list');
+  const p=list._post;
+  const cm=p&&p.comments.find(function(x){return String(x.id)===String(cmtId);});
+  if(!cm)return;
+  const orig=cm.text;
+  cm.text=newText;
+  const txtEl=gel('cmt-txt-'+cmtId);
+  if(txtEl)txtEl.textContent=newText;
+  showToast('✅ Comment updated!');
+  // Server update
+  try{fetch(SERVER+'/api/posts/'+postId+'/comment/'+cmtId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:newText,phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,'')})}).catch(function(){});}catch(e){}
+}
+
+function deleteComment(cmtId,postId){
+  const list=gel('cmt-list');
+  const p=list._post;
+  if(!p)return;
+  const cmIdx=p.comments.findIndex(function(x){return String(x.id)===String(cmtId);});
+  if(cmIdx<0)return;
+  const deletedCm=p.comments[cmIdx];
+  // Remove from DOM and array
+  p.comments.splice(cmIdx,1);
+  const el=document.getElementById('cmt-'+cmtId);
+  if(el)el.remove();
+  const cc=gel('cc-'+String(currentPostId));
+  if(cc)cc.textContent=p.comments.length;
+  // Show undo toast (30s)
+  showUndoToast('Comment deleted',function(){
+    p.comments.splice(cmIdx,0,deletedCm);
+    if(list._rerender)list._rerender();
+    const cc2=gel('cc-'+String(currentPostId));
+    if(cc2)cc2.textContent=p.comments.length;
+    showToast('↩ Comment restored!');
+  });
+  // Server delete (delayed 30s to allow undo)
+  setTimeout(function(){
+    try{fetch(SERVER+'/api/posts/'+postId+'/comment/'+cmtId,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,'')})}).catch(function(){});}catch(e){}
+  },30000);
+}
 on('cmt-send','click',submitComment);
 on('cmt-inp-txt','keypress',e=>{if(e.key==='Enter')submitComment();});
 function submitComment(){
@@ -2832,35 +3039,31 @@ gel('loc-post-btn').addEventListener('click',function(){
   );
 });
 
-on('post-submit-btn','click',async()=>{
-  const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
-  // Save to SERVER only — prevents double post
-  var postBody={
-    phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
-    name:CU&&CU.name||'Member',
-    city:CU&&CU.city||'',
-    text:txt
-  };
-  showToast('Posting...');
+on('post-submit-btn','click',function(){
+  const txt=gel('post-txt').value.trim();
+  if(!txt&&!postImgs.length){showToast('Write something first');return;}
+  const btn=gel('post-submit-btn');
+  if(btn._posting)return; // prevent double tap
+  btn._posting=true;
+  showToast('⏳ Posting...');
   fetch(SERVER+'/api/posts',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(postBody)
+    body:JSON.stringify({
+      phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
+      name:CU&&CU.name||'Member',
+      city:CU&&CU.city||'',
+      text:txt
+    })
   }).then(function(r){return r.json();})
-  .then(function(d){
+  .then(function(){
     gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
     showToast('✅ Post published!');
-    loadPosts(); // Reload from server — single source of truth
-  }).catch(function(){
-    // Fallback: show locally
-    feedPosts.unshift(np);
-    renderFeed(feedPosts);
-    gel('post-txt').value='';postImgs=[];gel('post-prev').innerHTML='';
-  });
-  showToast('Post shared!');
-  addNotification('📰','#f0fdf4','Post Shared','Your post is now live in Community Feed');
-  if(typeof Notification!=='undefined'&&Notification.permission==='granted'){try{new Notification('Adnani Connected',{body:'Your post is live!'});}catch(e){}}
-  try{await fetch(SERVER+'/api/posts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+gTok()},body:JSON.stringify({text:txt,phone})});}catch(e){}
+    addNotification('📰','#f0fdf4','New Post','Your post is now live');
+    loadPosts();
+  })
+  .catch(function(){showToast('Error posting. Try again.');})
+  .finally(function(){btn._posting=false;});
 });
 async function loadPosts(){
   try{
