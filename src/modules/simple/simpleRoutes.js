@@ -75,4 +75,15 @@ router.post('/approve', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// DELETE account (soft delete)
+router.delete('/delete-account', async (req, res) => {
+  try {
+    const phone = String(req.body.phone||'').replace(/\D/g,'');
+    if (!phone) return res.status(400).json({ error: 'Phone required' });
+    await Member.findOneAndUpdate({ phone }, { status: 'deleted', deleted_at: new Date() });
+    res.json({ success: true, message: 'Account deleted' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
