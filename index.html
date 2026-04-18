@@ -193,6 +193,20 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 .macts{display:flex;gap:4px;flex-shrink:0;}
 .avwrap{position:relative;flex-shrink:0;}
 
+/* APPROVAL CARDS */
+.apcard{background:var(--s1);border-radius:14px;margin:10px 12px;padding:14px;box-shadow:var(--sh1);border-left:4px solid var(--p2);}
+.apcard .apc-name{font-size:.95rem;font-weight:700;color:var(--t1);margin-bottom:2px;}
+.apcard .apc-detail{font-size:.75rem;color:var(--t3);line-height:1.7;margin-bottom:8px;}
+.apcard .apc-detail span{display:inline-block;margin-right:8px;}
+.apcard .apc-phone{font-size:.9rem;font-weight:700;color:var(--p2);margin:4px 0;}
+.apcard .apc-time{font-size:.65rem;color:var(--t4);margin-bottom:10px;}
+.apcard .apc-btns{display:flex;gap:8px;}
+.apcard .btn-approve{flex:1;padding:9px;background:var(--p2);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;}
+.apcard .btn-reject{padding:9px 14px;background:transparent;color:#dc2626;border:1.5px solid #dc2626;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;}
+.apcard .btn-wa{padding:9px 12px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;}
+.approved-card{background:var(--s1);border-radius:12px;margin:8px 12px;padding:12px;display:flex;align-items:center;gap:10px;border-left:4px solid #16a34a;}
+.approved-card .aname{font-size:.88rem;font-weight:700;color:var(--t1);}
+.approved-card .adetail{font-size:.72rem;color:var(--t3);}
 /* CHAT */
 .ci{display:flex;align-items:center;gap:11px;padding:11px 16px;background:var(--s1);border-bottom:1px solid var(--s3);cursor:pointer;}
 .ci:active{background:var(--s2);}
@@ -615,23 +629,61 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 </div>
 
 <!-- PENDING -->
-<div class="pp" id="pp">
-  <div class="pp-icon">⏳</div>
-  <h2>Approval Pending</h2>
-  <p>Your request has been sent. Admin will approve you shortly.</p>
-  <div class="pp-admin" style="margin-bottom:12px;">
-    <strong>Admin: Sri Md. Irfan</strong><br>
-    📞 <strong>9839060377</strong> (Lucknow)<br>
-    <small style="opacity:.8">WhatsApp ya call karein</small>
+<div class="pp" id="pp" style="padding:0;background:var(--bg);min-height:100vh;">
+  <!-- Top Banner -->
+  <div style="background:linear-gradient(135deg,#14532d,#166534);padding:32px 20px 24px;text-align:center;color:#fff;">
+    <div style="width:70px;height:70px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:2rem;">⏳</div>
+    <h2 style="font-size:1.3rem;margin:0 0 6px;">Approval Pending</h2>
+    <p style="font-size:.82rem;opacity:.85;margin:0;">Aapki request bhej di gayi hai</p>
   </div>
-  <div id="pp-myphone" style="background:rgba(240,192,64,.15);border:1px solid rgba(240,192,64,.4);border-radius:10px;padding:10px;margin-bottom:12px;text-align:center;">
-    <div style="font-size:.75rem;color:rgba(255,255,255,.7);margin-bottom:4px;">Apna number admin ko bhejein:</div>
-    <div id="pp-num" style="font-size:1.3rem;font-weight:800;letter-spacing:2px;color:#f0c040;">—</div>
+
+  <!-- Status Card -->
+  <div style="margin:16px 16px 0;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);">
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:.75rem;color:#666;margin-bottom:4px;">Aapka Phone Number</div>
+      <div id="pp-num" style="font-size:1.5rem;font-weight:800;letter-spacing:3px;color:#14532d;">—</div>
+    </div>
+    <div style="background:#f0fdf4;border-radius:10px;padding:12px;font-size:.78rem;color:#166534;line-height:1.7;">
+      ✅ Request server pe register ho gayi<br>
+      ⏳ Admin approval ka wait kar rahe hain<br>
+      🔔 Approve hone par notification aayegi
+    </div>
   </div>
-  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-    <button class="btn bo" id="chk-btn" onclick="checkApproval()">🔄 Check Status</button>
-    <button class="btn bp" id="wa-share-btn" onclick="shareToAdmin()">💬 WhatsApp Admin</button>
-    <button class="btn br" id="lgout-pp" onclick="doLogout()">← Logout</button>
+
+  <!-- Admin Contact -->
+  <div style="margin:12px 16px 0;background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);">
+    <p style="font-size:.78rem;font-weight:700;color:#374151;margin-bottom:10px;">📋 Approval ke liye admin se contact karein:</p>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f9fafb;border-radius:10px;">
+      <div style="width:42px;height:42px;background:#14532d;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;">MI</div>
+      <div style="flex:1;">
+        <div style="font-size:.88rem;font-weight:700;color:#111;">Sri Md. Irfan</div>
+        <div style="font-size:.75rem;color:#666;">General Secretary · Lucknow</div>
+        <div style="font-size:.82rem;font-weight:700;color:#14532d;margin-top:2px;">📞 9839060377</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div style="margin:12px 16px 0;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="shareToAdmin()" style="width:100%;padding:13px;background:#25d366;color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;">
+      💬 WhatsApp Admin ko Bhejein
+    </button>
+    <button id="chk-btn" onclick="checkApproval()" style="width:100%;padding:13px;background:#14532d;color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;">
+      🔄 Approval Check Karein
+    </button>
+    <div style="display:flex;gap:8px;">
+      <button onclick="callAdmin()" style="flex:1;padding:11px;background:#fff;color:#14532d;border:2px solid #14532d;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;">
+        📞 Call Admin
+      </button>
+      <button id="lgout-pp" onclick="doLogout()" style="flex:1;padding:11px;background:#fff;color:#dc2626;border:2px solid #dc2626;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;">
+        ← Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- Auto check info -->
+  <div style="margin:12px 16px 24px;text-align:center;">
+    <p style="font-size:.72rem;color:#9ca3af;">🔄 Har 15 second mein automatically check ho raha hai</p>
   </div>
 </div>
 
@@ -1048,31 +1100,72 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 
 <!-- PROFILE -->
 <div class="sc" id="sc-profile">
-  <div class="pcover">
-    <div class="pav-wr"><div class="avi xl" id="prof-av" style="background:#166534;"></div><label class="pcam"><input type="file" accept="image/*" id="prof-photo-inp" style="display:none;">✏️</label></div>
-    <h2 id="prof-nm" style="margin-top:9px;">User</h2>
-    <p id="prof-cy" style="opacity:.75;font-size:.78rem;margin-top:3px;">Member</p>
+  <!-- Cover Banner -->
+  <div style="background:linear-gradient(135deg,#14532d,#166534);padding:28px 16px 16px;text-align:center;position:relative;">
+    <div style="position:relative;display:inline-block;">
+      <div class="avi xl" id="prof-av" style="background:#0a3d1f;border:3px solid rgba(255,255,255,.3);margin:0 auto;"></div>
+      <label class="pcam" style="position:absolute;bottom:0;right:0;background:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;box-shadow:0 2px 6px rgba(0,0,0,.2);">
+        <input type="file" accept="image/*" id="prof-photo-inp" style="display:none;">✏️
+      </label>
+    </div>
+    <h2 id="prof-nm" style="color:#fff;margin:10px 0 2px;font-size:1.2rem;">User</h2>
+    <p id="prof-cy" style="color:rgba(255,255,255,.8);font-size:.78rem;margin:0;"></p>
+    <div id="prof-badge" style="display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;font-size:.72rem;color:#fff;margin-top:6px;">Member</div>
   </div>
-  <div class="card" style="margin-top:0;border-radius:0;"><div class="psts">
-    <div class="pst"><div class="n" id="p-conn">12</div><div class="l">Connections</div></div>
-    <div class="pst"><div class="n" id="p-ev">3</div><div class="l">Events</div></div>
-    <div class="pst"><div class="n" id="p-don">2</div><div class="l">Donations</div></div>
-  </div></div>
-  <div class="card" style="margin-top:10px;">
-    <div class="sitem" id="lang-item"><div class="sico" style="background:#dcfce7;">🌐</div><span class="sl">Language</span><span class="sv" id="lang-sv">English</span></div>
-    <div class="sitem" id="dark-item"><div class="sico" style="background:#fef9c3;">🌙</div><span class="sl">Dark Mode</span><span class="sv" id="dark-sv">Off</span></div>
-    <div class="sitem" id="perm-item"><div class="sico" style="background:#dbeafe;">🔔</div><span class="sl">Permissions</span><span class="sv">›</span></div>
-    <div class="sitem" id="share-app-item"><div class="sico" style="background:#f3e8ff;">📤</div><span class="sl">Share App</span><span class="sv">›</span></div>
-    <div class="sitem" id="lgout-item"><div class="sico" style="background:#fee2e2;">🚪</div><span class="sl" style="color:var(--red);">Logout</span><span class="sv">›</span></div>
+
+  <!-- Stats -->
+  <div style="display:flex;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.08);">
+    <div class="pst" style="flex:1;padding:12px 6px;text-align:center;border-right:1px solid #f0f0f0;"><div class="n" id="p-conn" style="font-size:1.2rem;">0</div><div class="l" style="font-size:.65rem;">Posts</div></div>
+    <div class="pst" style="flex:1;padding:12px 6px;text-align:center;border-right:1px solid #f0f0f0;"><div class="n" id="p-ev" style="font-size:1.2rem;">0</div><div class="l" style="font-size:.65rem;">Events</div></div>
+    <div class="pst" style="flex:1;padding:12px 6px;text-align:center;"><div class="n" id="p-don" style="font-size:1.2rem;">0</div><div class="l" style="font-size:.65rem;">Donations</div></div>
   </div>
-  <div id="admin-link" style="display:none;">
-    <div class="card" style="margin-top:8px;">
-      <div class="sitem" id="admin-nav-item"><div class="sico" style="background:#fce7f3;">🛡️</div><span class="sl" style="color:var(--red);font-weight:700;">Admin Panel</span><span class="sv">›</span></div>
-      <div class="sitem" id="pay-settings-item"><div class="sico" style="background:#fef3c7;">⚙️</div><span class="sl" style="color:var(--amber);font-weight:700;">Charity Payment Settings</span><span class="sv">›</span></div>
+
+  <!-- Personal Details Card -->
+  <div style="margin:10px 12px 0;background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <p style="font-size:.8rem;font-weight:700;color:#374151;margin:0;">👤 Meri Details</p>
+      <button onclick="openEditProfile()" style="font-size:.72rem;padding:4px 10px;background:#f0fdf4;color:#14532d;border:1px solid #14532d;border-radius:6px;cursor:pointer;">✏️ Edit</button>
+    </div>
+    <div id="prof-details-card" style="font-size:.8rem;color:#374151;line-height:2;">
+      <div><span style="color:#9ca3af;min-width:80px;display:inline-block;">Naam</span> <span id="pd-name" style="font-weight:600;">—</span></div>
+      <div><span style="color:#9ca3af;min-width:80px;display:inline-block;">Walid</span> <span id="pd-father" style="font-weight:600;">—</span></div>
+      <div><span style="color:#9ca3af;min-width:80px;display:inline-block;">Phone</span> <span id="pd-phone" style="font-weight:600;">—</span></div>
+      <div><span style="color:#9ca3af;min-width:80px;display:inline-block;">Sheher</span> <span id="pd-city" style="font-weight:600;">—</span></div>
+      <div id="pd-addr-row" style="display:none;"><span style="color:#9ca3af;min-width:80px;display:inline-block;">Address</span> <span id="pd-address" style="font-weight:600;">—</span></div>
+      <div id="pd-tahsil-row" style="display:none;"><span style="color:#9ca3af;min-width:80px;display:inline-block;">Tahsil</span> <span id="pd-tahsil" style="font-weight:600;">—</span></div>
+      <div id="pd-dist-row" style="display:none;"><span style="color:#9ca3af;min-width:80px;display:inline-block;">Zila</span> <span id="pd-district" style="font-weight:600;">—</span></div>
+      <div id="pd-pin-row" style="display:none;"><span style="color:#9ca3af;min-width:80px;display:inline-block;">PIN</span> <span id="pd-pin" style="font-weight:600;">—</span></div>
     </div>
   </div>
-  <div id="approve-link" style="display:none;">
-    <div class="card" style="margin-top:8px;"><div class="sitem" id="approve-nav-item"><div class="sico" style="background:#fef9c3;">✅</div><span class="sl" style="color:var(--amber);font-weight:700;">Approve New Members</span><span class="sv" id="pend-count">2</span></div></div>
+
+  <!-- Settings Card -->
+  <div style="margin:10px 12px 0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div class="sitem" id="lang-item"><div class="sico" style="background:#dcfce7;">🌐</div><span class="sl">Language</span><span class="sv" id="lang-sv">English</span></div>
+    <div class="sitem" id="dark-item"><div class="sico" style="background:#fef9c3;">🌙</div><span class="sl">Dark Mode</span><span class="sv" id="dark-sv">Off</span></div>
+    <div class="sitem" id="perm-item"><div class="sico" style="background:#dbeafe;">🔔</div><span class="sl">Notifications</span><span class="sv">›</span></div>
+    <div class="sitem" id="share-app-item"><div class="sico" style="background:#f3e8ff;">📤</div><span class="sl">Share App</span><span class="sv">›</span></div>
+  </div>
+
+  <!-- Admin/Approve Card -->
+  <div id="admin-link" style="display:none;margin:10px 12px 0;">
+    <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+      <div class="sitem" id="admin-nav-item"><div class="sico" style="background:#fce7f3;">🛡️</div><span class="sl" style="color:#dc2626;font-weight:700;">Admin Panel</span><span class="sv">›</span></div>
+      <div class="sitem" id="pay-settings-item"><div class="sico" style="background:#fef3c7;">⚙️</div><span class="sl" style="color:#d97706;font-weight:700;">Payment Settings</span><span class="sv">›</span></div>
+    </div>
+  </div>
+  <div id="approve-link" style="display:none;margin:10px 12px 0;">
+    <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+      <div class="sitem" id="approve-nav-item">
+        <div class="sico" style="background:#dcfce7;">✅</div>
+        <span class="sl" style="color:#16a34a;font-weight:700;">Approve Members</span>
+        <span id="pend-count" style="background:#dc2626;color:#fff;border-radius:10px;padding:2px 7px;font-size:.7rem;font-weight:700;display:none;">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout -->
+  <div style="margin:10px 12px 20px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div class="sitem" id="lgout-item"><div class="sico" style="background:#fee2e2;">🚪</div><span class="sl" style="color:#dc2626;font-weight:600;">Logout</span><span class="sv">›</span></div>
   </div>
 </div>
 
@@ -1095,15 +1188,70 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
 
 <!-- APPROVE -->
 <div class="sc" id="sc-approve">
-  <div class="shdr" style="background:linear-gradient(135deg,#78350f,#92400e);"><h2>✅ Approve Members</h2><p>Any approved member can approve requests</p></div>
-  <div class="card" style="margin:8px 12px;padding:12px;">
-    <p style="font-size:.78rem;color:var(--t3);margin-bottom:8px;">📞 Phone number se seedha approve karein:</p>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="tel" id="manual-phone" placeholder="e.g. 7007722342" style="flex:1;padding:8px 10px;border:1.5px solid var(--s3);border-radius:8px;font-size:.88rem;background:var(--s2);outline:none;" inputmode="numeric" maxlength="15">
-      <button onclick="approveByPhone()" class="btn bp" style="padding:8px 14px;font-size:.82rem;white-space:nowrap;flex-shrink:0;">✓ Approve</button>
+  <!-- Header -->
+  <div class="shdr" style="background:linear-gradient(135deg,#14532d,#166534);padding:16px 16px 12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h2 style="font-size:1.1rem;margin:0">✅ Approve Members</h2>
+        <p style="margin:2px 0 0;font-size:.75rem;opacity:.8">Pending requests aur manual approval</p>
+      </div>
+      <div style="background:rgba(255,255,255,.15);border-radius:20px;padding:4px 12px;font-size:.8rem;">
+        <span id="ap-c">0</span> pending
+      </div>
     </div>
   </div>
-  <div id="approve-list"></div>
+
+  <!-- Tabs -->
+  <div style="display:flex;border-bottom:2px solid var(--s3);background:var(--bg);">
+    <button id="aptab-pending" onclick="switchApproveTab('pending')" 
+      style="flex:1;padding:10px 4px;border:none;background:none;font-size:.8rem;font-weight:700;color:var(--p2);border-bottom:2px solid var(--p2);cursor:pointer;">
+      ⏳ Pending (<span id="pending-count2">0</span>)
+    </button>
+    <button id="aptab-manual" onclick="switchApproveTab('manual')"
+      style="flex:1;padding:10px 4px;border:none;background:none;font-size:.8rem;font-weight:600;color:var(--t3);cursor:pointer;">
+      📞 Manual Approve
+    </button>
+    <button id="aptab-approved" onclick="switchApproveTab('approved')"
+      style="flex:1;padding:10px 4px;border:none;background:none;font-size:.8rem;font-weight:600;color:var(--t3);cursor:pointer;">
+      ✅ Approved
+    </button>
+  </div>
+
+  <!-- Pending Tab -->
+  <div id="aptab-pending-content">
+    <div id="approve-list"></div>
+  </div>
+
+  <!-- Manual Approve Tab -->
+  <div id="aptab-manual-content" style="display:none;padding:12px;">
+    <div style="background:var(--s2);border-radius:12px;padding:14px;margin-bottom:12px;">
+      <p style="font-size:.82rem;font-weight:700;color:var(--t1);margin-bottom:8px;">📞 Phone se Approve Karein</p>
+      <p style="font-size:.75rem;color:var(--t3);margin-bottom:10px;">Member ka phone number daalo — approved hote hi WhatsApp link jaayega</p>
+      <div style="display:flex;gap:8px;">
+        <input type="tel" id="manual-phone" placeholder="Phone number daalo" 
+          style="flex:1;padding:10px;border:1.5px solid var(--s3);border-radius:8px;font-size:.9rem;background:var(--bg);outline:none;color:var(--t1);"
+          inputmode="numeric" maxlength="15">
+        <button onclick="approveByPhone()" class="btn bp" style="padding:10px 16px;font-size:.85rem;white-space:nowrap;">
+          ✓ Approve
+        </button>
+      </div>
+    </div>
+    <div style="background:var(--s2);border-radius:12px;padding:14px;">
+      <p style="font-size:.82rem;font-weight:700;color:var(--t1);margin-bottom:8px;">🔗 Approval Link Share Karein</p>
+      <p style="font-size:.75rem;color:var(--t3);margin-bottom:10px;">Naye members ko yeh link bhejein — register karne ke baad approval milegi</p>
+      <div style="background:var(--bg);border:1px solid var(--s3);border-radius:8px;padding:10px;font-size:.75rem;color:var(--p2);word-break:break-all;">
+        https://umranoorshahi.github.io/Adnani/
+      </div>
+      <button onclick="shareAppLink()" class="btn bp" style="width:100%;margin-top:8px;padding:10px;">
+        💬 WhatsApp pe Share Karein
+      </button>
+    </div>
+  </div>
+
+  <!-- Approved Tab -->
+  <div id="aptab-approved-content" style="display:none;">
+    <div id="approved-list"></div>
+  </div>
 </div>
 
 </div><!-- end #app -->
@@ -1626,6 +1774,9 @@ function handleUser(u){
   launchApp();
 }
 function showPending(){hideAllAuth();gel('pp').classList.add('v');}
+function callAdmin(){
+  window.location.href='tel:9839060377';
+}
 function shareToAdmin(){
   var myPh=document.getElementById('pp-num');
   var num=myPh?myPh.textContent:'';
@@ -1738,6 +1889,42 @@ async function checkApproval(){
 function doLogout(){localStorage.clear();CU=null;_appInited=false;_clockRunning=false;_bound.clear();['hdr','app','nav'].forEach(id=>{const _e=gel(id);if(_e)_e.style.display='none';});hideAllAuth();showAuth('ap-phone');}
 function showAuth(id){hideAllAuth();const _el=gel(id);if(_el)_el.classList.remove('h');applyLang(lang);}
 function hideAllAuth(){['ap-phone','ap-otp','ap-prof'].forEach(id=>{const _e=gel(id);if(_e)_e.classList.add('h');});gel('pp').classList.remove('v');}
+
+function updateProfileDisplay(){
+  if(!CU)return;
+  var nm=gel('pd-name');if(nm)nm.textContent=CU.name||'—';
+  var ph=gel('pd-phone');if(ph)ph.textContent=CU.phone||'—';
+  var ct=gel('pd-city');if(ct)ct.textContent=CU.city||'—';
+  var fa=gel('pd-father');if(fa)fa.textContent=CU.fatherName||'—';
+  var ad=gel('pd-address');if(ad&&CU.address){ad.textContent=CU.address;gel('pd-addr-row').style.display='block';}
+  var th=gel('pd-tahsil');if(th&&CU.tahsil){th.textContent=CU.tahsil;gel('pd-tahsil-row').style.display='block';}
+  var di=gel('pd-district');if(di&&CU.district){di.textContent=CU.district;gel('pd-dist-row').style.display='block';}
+  var pi=gel('pd-pin');if(pi&&CU.pincode){pi.textContent=CU.pincode;gel('pd-pin-row').style.display='block';}
+  // Badge
+  var badge=gel('prof-badge');
+  if(badge){badge.textContent=CU.isAdmin?'🛡️ Admin':CU.isSuperUser?'⭐ Special Member':CU.canApprove?'✅ Approved Member':'Member';}
+  // Prof name/city in header
+  var pnm=gel('prof-nm');if(pnm)pnm.textContent=CU.name||'User';
+  var pcy=gel('prof-cy');if(pcy)pcy.textContent=CU.city||'';
+  // Post count
+  var conn=gel('p-conn');if(conn)conn.textContent=feedPosts.filter(function(p){return String(p.phone||'').replace(/[^0-9]/g,'')==String(CU.phone||'').replace(/[^0-9]/g,'');}).length;
+}
+
+function openEditProfile(){
+  // Prefill the profile form with current data and show it
+  var snInp=gel('sn-inp');if(snInp&&CU.name)snInp.value=CU.name;
+  var sfInp=gel('sf-inp');if(sfInp&&CU.fatherName)sfInp.value=CU.fatherName;
+  var scInp=gel('sc-inp');if(scInp&&CU.city)scInp.value=CU.city;
+  var adInp=gel('saddr-inp');if(adInp&&CU.address)adInp.value=CU.address;
+  var thInp=gel('stahsil-inp');if(thInp&&CU.tahsil)thInp.value=CU.tahsil;
+  var diInp=gel('sdistrict-inp');if(diInp&&CU.district)diInp.value=CU.district;
+  var piInp=gel('spin-inp');if(piInp&&CU.pincode)piInp.value=CU.pincode;
+  // Show profile form
+  var hdr=gel('hdr');if(hdr)hdr.style.display='none';
+  var nav=gel('nav');if(nav)nav.style.display='none';
+  var app=gel('app');if(app)app.style.display='none';
+  var apProf=gel('ap-prof');if(apProf)apProf.style.display='flex';
+}
 
 function launchApp(){
   hideAllAuth();
@@ -1973,7 +2160,7 @@ let MEMBERS=[
   {id:18,name:'Sri Shakeel Ahmad Khan', city:'Bhopal',    role:'Member / Retired',       phone:'',           online:false, address:'Flat No. 5, Dalmau Apt., Civil Line, Bhopal'},
 ];
 // IDs of original 19 committee members — never mixed with new members
-const COMMITTEE_IDS = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]);
+const COMMITTEE_IDS = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]);// id:19 Noor Mohammad moved to app members
 // New members added after approval go here
 let NEW_MEMBERS = [];
 let PENDING=[]; // Real pending requests only
@@ -2540,10 +2727,20 @@ function renderFeed(posts){
   }).join('');
 }
 on('feed-list','click',e=>{
-  const lb=e.target.closest('[data-like]');if(lb)toggleLike(Number(lb.dataset.like));
-  const cb=e.target.closest('[data-comment]');if(cb)openComments(Number(cb.dataset.comment));
-  const sb=e.target.closest('[data-share-post]');if(sb)sharePostFn(Number(sb.dataset.sharePost));
-  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){feedPosts=feedPosts.filter(p=>p.id!==Number(db.dataset.postDel));try{localStorage.setItem('adnani_posts',JSON.stringify(feedPosts.slice(0,100)));}catch(e){}gel('pc-'+db.dataset.postDel)?.remove();showToast('Post deleted.');}
+  const lb=e.target.closest('[data-like]');if(lb)toggleLike(lb.dataset.like);
+  const cb=e.target.closest('[data-comment]');if(cb)openComments(cb.dataset.comment);
+  const sb=e.target.closest('[data-share-post]');if(sb)sharePostFn(sb.dataset.sharePost);
+  const db=e.target.closest('[data-post-del]');if(db&&confirm('Delete post?')){const delId=db.dataset.postDel;
+    const delPost=feedPosts.find(x=>String(x._id||x.id)===String(delId));
+    const myPh=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+    // Anyone can delete own post
+    if(delPost&&(String(delPost.phone||'').replace(/[^0-9]/g,'')===myPh||isAdm)){
+      feedPosts=feedPosts.filter(p=>String(p._id||p.id)!==String(delId));
+      gel('pc-'+delId)?.remove();
+      showToast('Post deleted.');
+      // Delete from server
+      if(delPost._id){fetch(SERVER+'/api/posts/'+delPost._id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:myPh})}).catch(()=>{});}
+    } else {showToast('Sirf apni post delete kar sakte hain');}}
 });
 function toggleLike(id){
   const sid=String(id);
@@ -2637,8 +2834,7 @@ gel('loc-post-btn').addEventListener('click',function(){
 
 on('post-submit-btn','click',async()=>{
   const txt=gel('post-txt').value.trim();if(!txt&&!postImgs.length){showToast('Write something first');return;}
-  const np={id:Date.now(),name:CU?.name||'You',city:CU?.city||'',text:txt,time:'Just now',likes:0,liked:false,comments:[],shared:0,imgs:[...postImgs]};
-  // Save to SERVER — then reload from server (prevents double post)
+  // Save to SERVER only — prevents double post
   var postBody={
     phone:String(CU&&CU.phone||'').replace(/[^0-9]/g,''),
     name:CU&&CU.name||'Member',
@@ -2884,29 +3080,94 @@ function approveByPhone(){
 function renderApproveListUI(){
   const el=gel('approve-list');if(!el)return;
   const pc=gel('pend-count');if(pc)pc.textContent=PENDING.length;
+  const pc2=gel('pending-count2');if(pc2)pc2.textContent=PENDING.length;
+  const apc=gel('ap-c');if(apc)apc.textContent=PENDING.length;
   
   if(!PENDING.length){
-    el.innerHTML='<div class="empty" style="padding:40px;text-align:center;"><div style="font-size:2rem;">✅</div><p style="margin-top:8px;color:var(--t3);">No pending approvals</p></div>';
+    el.innerHTML=`<div style="padding:40px 20px;text-align:center;">
+      <div style="font-size:3rem;">✅</div>
+      <p style="margin-top:12px;color:var(--t3);font-size:.9rem;font-weight:600;">Koi pending request nahi</p>
+      <p style="color:var(--t4);font-size:.75rem;margin-top:4px;">Naye members register karenge tab yahan dikhenge</p>
+    </div>`;
     return;
   }
   
-  el.innerHTML=PENDING.map(m=>`
-    <div class="pu" id="pend-${m.id}">
-      ${mkAvi(m.name,'md')}
-      <div class="pui">
-        <h4>${m.name||'New Member'}</h4>
-        <p style="font-size:.7rem;color:var(--t3);">📞 ${m.phone||'—'}</p>
-        <p style="font-size:.68rem;color:var(--t3);">👨 ${m.fatherName||'—'}</p>
-        <p style="font-size:.68rem;color:var(--t3);">📍 ${m.city||'—'}${m.district?', '+m.district:''}</p>
-        ${m.address?`<p style="font-size:.65rem;color:var(--t4);">🏠 ${m.address}${m.tahsil?', '+m.tahsil:''}</p>`:''}
-        ${m.pincode?`<p style="font-size:.65rem;color:var(--t4);">📮 ${m.pincode}</p>`:''}
-        <p style="font-size:.63rem;color:var(--t4);">⏰ ${m.requested||'Recently'}</p>
+  el.innerHTML=PENDING.map(function(m){
+    const timeAgo=m.requested||'Abhi';
+    const location=[m.city,m.district].filter(Boolean).join(', ');
+    const fullAddr=[m.address,m.tahsil,m.district].filter(Boolean).join(', ');
+    return `<div class="apcard" id="pend-${m.id}">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        ${mkAvi(m.name||'M','md')}
+        <div style="flex:1;min-width:0;">
+          <div class="apc-name">${m.name||'New Member'}</div>
+          <div class="apc-phone">📞 ${m.phone||'—'}</div>
+          <div class="apc-detail">
+            ${m.fatherName?`<span>👨 ${m.fatherName}</span>`:''}
+            ${location?`<span>📍 ${location}</span>`:''}
+            ${m.pincode?`<span>📮 ${m.pincode}</span>`:''}
+            ${fullAddr?`<br><span>🏠 ${fullAddr}</span>`:''}
+          </div>
+          <div class="apc-time">⏰ ${timeAgo}</div>
+        </div>
       </div>
-      <div class="pub" style="flex-direction:column;gap:4px;">
-        <button class="btn bp" style="font-size:.72rem;padding:5px 12px;" data-appv="${m.id}">✓ Approve</button>
-        <button class="btn br" style="font-size:.72rem;padding:4px 12px;" data-appv-rej="${m.id}">✕ Reject</button>
+      <div class="apc-btns">
+        <button class="btn-approve" data-appv="${m.id}">✓ Approve karein</button>
+        <button class="btn-wa" onclick="sendWAToMember('${m.phone}','${m.name||'Member'}')">💬</button>
+        <button class="btn-reject" data-appv-rej="${m.id}">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function sendWAToMember(ph, name){
+  if(!ph)return;
+  const msg='Assalamu Alaikum '+name+'! Adnani Connected App ke liye aapki request mili. Jald approve karenge. Shukriya!';
+  window.open('https://wa.me/91'+ph.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+function switchApproveTab(tab){
+  // Update tab buttons
+  ['pending','manual','approved'].forEach(function(t){
+    var btn=gel('aptab-'+t);
+    var content=gel('aptab-'+t+'-content');
+    if(btn){
+      btn.style.color=t===tab?'var(--p2)':'var(--t3)';
+      btn.style.fontWeight=t===tab?'700':'600';
+      btn.style.borderBottom=t===tab?'2px solid var(--p2)':'2px solid transparent';
+    }
+    if(content)content.style.display=t===tab?'block':'none';
+  });
+  if(tab==='approved')renderApprovedList();
+}
+
+function renderApprovedList(){
+  const el=gel('approved-list');if(!el)return;
+  // Get from localStorage
+  var approved=[];
+  try{approved=JSON.parse(localStorage.getItem('adnani_approved')||'[]');}catch(e){}
+  // Also add from NEW_MEMBERS
+  var allApproved=[...NEW_MEMBERS];
+  
+  if(!allApproved.length&&!approved.length){
+    el.innerHTML='<div style="padding:30px;text-align:center;color:var(--t3);">Koi approved member nahi</div>';
+    return;
+  }
+  el.innerHTML=allApproved.map(function(m){
+    return `<div class="approved-card">
+      ${mkAvi(m.name||'M','sm')}
+      <div style="flex:1;">
+        <div class="aname">${m.name||'Member'}</div>
+        <div class="adetail">📞 ${m.phone||'—'} · 📍 ${m.city||'—'}</div>
+      </div>
+      <span style="color:#16a34a;font-size:1.2rem;">✅</span>
+    </div>`;
+  }).join('');
+}
+
+function shareAppLink(){
+  var msg='\u2705 Adnani Connected App\n\nAll India Muslim Halwai Adnani Biradari\n\n\ud83d\udc49 https://umranoorshahi.github.io/Adnani/\n\nApproval: Sri Md. Irfan - 9839060377';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 on('approve-list','click',e=>{
   const ab=e.target.closest('[data-appv]');
@@ -3762,8 +4023,8 @@ function _startApp(){
       var nm=document.getElementById('prof-nm');if(nm)nm.textContent=u.name||'User';
       // Show approve button for special users
       if(isSpecial||u.canApprove){
-        var al=document.getElementById('approve-link');if(al)al.style.display='block';
-        var pc=document.getElementById('pend-count');if(pc)pc.textContent=PENDING.length;
+        var al=document.getElementById('approve-link');if(al)al.style.display='flex';
+        var pc=document.getElementById('pend-count');if(pc){pc.textContent=PENDING.length;pc.style.display=PENDING.length>0?'flex':'none';}
       }
       if(onlyAdmin||u.isAdmin){
         var adl=document.getElementById('admin-link');if(adl)adl.style.display='block';
