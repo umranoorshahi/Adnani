@@ -1327,12 +1327,22 @@ body.urdu{font-family:'Amiri',serif;direction:rtl;}
   <div class="ig"><label>Profession</label><input type="text" id="r-job" placeholder="Teacher, Business..."></div>
   <div class="ig"><label>Family Background &amp; Details</label><textarea id="r-about" placeholder="Family details, preferences, requirements..."></textarea></div>
   <div class="ig"><label>Your Contact Number (shown to admin only)</label><input type="tel" id="r-ph" placeholder="Your own number" style="direction:ltr;"></div>
-  <div class="ig"><label>Visibility</label>
-    <select id="r-vis" style="width:100%;padding:9px;border:1.5px solid var(--s3);border-radius:8px;font-size:.88rem;background:var(--bg);color:var(--t1);">
-      <option value="members">✅ Sirf Approved Members</option>
-      <option value="admin">🔒 Admin Only</option>
-      <option value="public">🌐 Sabko dikhaye</option>
-    </select>
+  <div class="ig"><label>Visibility — Kaun dekh sakta hai?</label>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:8px;cursor:pointer;">
+        <input type="radio" name="r-vis" value="members" checked> <span style="font-size:.82rem;">👥 Sirf Approved Members</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:8px;cursor:pointer;">
+        <input type="radio" name="r-vis" value="public"> <span style="font-size:.82rem;">🌐 Sabko dikhaye</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:8px;cursor:pointer;">
+        <input type="radio" name="r-vis" value="selected"> <span style="font-size:.82rem;">🎯 Khaas Members (Select karein)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:8px;cursor:pointer;">
+        <input type="radio" name="r-vis" value="admin"> <span style="font-size:.82rem;">🔒 Sirf Admin</span>
+      </label>
+    </div>
+    <div id="r-selected-members" style="display:none;margin-top:8px;background:var(--s2);border-radius:10px;padding:10px;max-height:200px;overflow-y:auto;"></div>
   </div>
   <button class="btn bp bfull" id="rishta-sub" style="margin-top:4px;">Register ✓</button>
 </div></div>
@@ -1722,9 +1732,13 @@ async function saveProfile(){
       tahsil:tahsil||CU.tahsil||'',
       district:district||CU.district||'',
       pincode:pincode||CU.pincode||'',
-      isAdmin:adm,role:adm?'admin':(CU.role||'user')
+      isAdmin:adm,role:adm?'admin':(CU.role||'user'),
+      profile_complete:true,
+      profile_date:new Date().toISOString()
     };
     sUser(updatedUser);
+    // Mark profile as complete — never ask again
+    try{localStorage.setItem('adnani_profile_done_'+String(phone).replace(/[^0-9]/g,''),'1');}catch(e){}
     // Then sync with server
     try{
       const r=await fetch(SERVER+'/api/auth/profile',{
@@ -1790,6 +1804,19 @@ async function saveProfile(){
 }
 
 function handleUser(u){
+  // Check if profile already filled before
+  var ph=String(u.phone||phone||'').replace(/[^0-9]/g,'');
+  var profDone=false;
+  try{profDone=localStorage.getItem('adnani_profile_done_'+ph)==='1';}catch(e){}
+  
+  // If profile complete AND approved → go straight to app
+  if(profDone&&u.approved&&u.name){
+    // Re-check admin status
+    var onlyAdm=(ph==='9839060377');
+    var isSup=['9415061063','9918717288'].includes(ph);
+    if(onlyAdm||isSup){u.isAdmin=onlyAdm;u.isSuperUser=isSup;u.canApprove=true;}
+    sUser(u);launchApp();return;
+  }
   if(isAdminPhone(u.phone||phone)){
     // Only Irfan (9839060377) is shown as Admin
     var onlyAdmin=(String(u.phone||phone).replace(/[^0-9]/g,'')==='9839060377');
@@ -1833,7 +1860,14 @@ async function checkApproval(){
 
   function doApprove(){
     var u=gUser();
-    if(u){u.approved=true;sUser(u);}
+    if(u){
+      u.approved=true;
+      u.profile_complete=true;
+      u.approval_date=new Date().toISOString();
+      sUser(u);
+      // Mark permanently — never ask profile again
+      try{localStorage.setItem('adnani_profile_done_'+String(u.phone||'').replace(/[^0-9]/g,''),'1');}catch(e){}
+    }
     var pp=document.getElementById('pp');if(pp)pp.classList.remove('v');
     var hdr=document.getElementById('hdr');if(hdr)hdr.style.display='flex';
     var nav=document.getElementById('nav');if(nav)nav.style.display='flex';
@@ -1964,9 +1998,20 @@ function launchApp(){
     if(CU){
       gel('prof-nm').textContent=CU.name||'User';
       gel('prof-cy').textContent=(CU.city||'')+(CU.isAdmin?' · Admin':CU.isSuperUser?' · Member':' · Member');
-      setAvi(gel('prof-av'),CU.name||'U');
-      setAvi(gel('pc-av'),CU.name||'U');
-      setAvi(gel('cmt-av'),CU.name||'U');
+      // Show photo or initials
+      function setMyAvi(el){
+        if(!el)return;
+        if(CU.photo){
+          el.innerHTML='<img src="'+CU.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+          el.style.background='transparent';
+        } else {
+          setAvi(el,CU.name||'U');
+        }
+        el.dataset.myavi='1';
+      }
+      setMyAvi(gel('prof-av'));
+      setMyAvi(gel('pc-av'));
+      setMyAvi(gel('cmt-av'));
       if(CU.isAdmin||CU.role==='admin'||CU.isSuperUser||CU.canApprove){gel('admin-link').style.display='block';}
       // Approve button visible for Irfan, Mahmood, Noor
       if(CU.canApprove||CU.isAdmin||CU.isSuperUser){
@@ -2069,7 +2114,24 @@ on('pay-settings-item','click',()=>openSheet('paysettings'));
 on('approve-nav-item','click',()=>showScreen('approve'));
 on('prof-photo-inp','change',function(){
   if(!this.files[0])return;
-  const r=new FileReader();r.onload=e=>{const a=gel('prof-av');if(a){a.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;a.style.background='transparent';}};r.readAsDataURL(this.files[0]);
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const imgData=ev.target.result;
+    // Show in profile avatar
+    const a=gel('prof-av');
+    if(a){a.innerHTML='<img src="'+imgData+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';a.style.background='transparent';}
+    // Save photo to user profile
+    if(CU){
+      CU.photo=imgData;
+      sUser(CU);
+      // Update all avatars showing current user
+      document.querySelectorAll('.avi').forEach(function(el){
+        if(el.dataset.myavi){el.innerHTML='<img src="'+imgData+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';el.style.background='transparent';}
+      });
+      showToast('✅ Photo saved!');
+    }
+  };
+  reader.readAsDataURL(this.files[0]);
 });
 
 // ═══════════════════════════════════
@@ -2273,9 +2335,7 @@ function renderMembers(){
   if(memFilter==='online')list=list.filter(m=>m.online);
   else if(memFilter!=='all')list=list.filter(m=>m.city.toLowerCase().includes(memFilter.toLowerCase()));
   if(memSearch)list=list.filter(m=>m.name.toLowerCase().includes(memSearch)||m.city.toLowerCase().includes(memSearch)||m.role.toLowerCase().includes(memSearch));
-  const committeeList=list.filter(m=>COMMITTEE_IDS.has(m.id));
-  const newList=list.filter(m=>!COMMITTEE_IDS.has(m.id));
-  gel('mem-lbl').textContent=`${committeeList.length} Committee + ${newList.length} New Members`;
+  // Committee/new split now in html render section
   const memberCard=(m)=>`
     <div class="mi">
       <div class="avwrap" data-memid="${m.id}"><div class="avi md" style="background:${avC(m.name)};position:relative;">${avI(m.name)}<div class="udot ${m.online?'ondot':'offdot'}"></div></div></div>
@@ -2290,15 +2350,27 @@ function renderMembers(){
         ${isAdm?`<button class="edit-inline" data-edit-mem="${m.id}">Edit</button><button class="del-btn" data-del-mem="${m.id}">Del</button>`:''}
       </div>
     </div>`;
+  const committeeList=list.filter(function(m){return COMMITTEE_IDS.has(m.id);});
+  const newList=list.filter(function(m){return !COMMITTEE_IDS.has(m.id);});
+  gel('mem-lbl').textContent=committeeList.length+' Committee · '+newList.length+' App Members';
   let html='';
-  if(committeeList.length>0){
-    html+=`<div class="stitle" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:0;">🏛️ ALL INDIA COMMITTEE (${committeeList.length})</div>`;
-    html+=committeeList.map(memberCard).join('');
+  // For 'all' or 'committee' tab — show committee section
+  if(memFilter==='all'||memFilter==='committee'||memFilter==='online'){
+    if(committeeList.length>0){
+      html+='<div class="stitle" style="background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:0;padding:8px 14px;">🏛️ ALL INDIA COMMITTEE ('+committeeList.length+')</div>';
+      html+=committeeList.map(memberCard).join('');
+    }
   }
-  if(newList.length>0){
-    html+=`<div class="stitle" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:0;margin-top:8px;">👥 APP MEMBERS (${newList.length})</div>`;
-    html+=newList.map(memberCard).join('');
+  // For 'all' or 'appMembers' tab — show app members section
+  if(memFilter==='all'||memFilter==='appMembers'||memFilter==='online'){
+    if(newList.length>0){
+      html+='<div class="stitle" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-radius:0;padding:8px 14px;margin-top:6px;">👥 APP MEMBERS ('+newList.length+')</div>';
+      html+=newList.map(memberCard).join('');
+    }
   }
+  // For specific tabs show directly
+  if(memFilter==='committee'&&committeeList.length===0)html='<div class="empty">No committee members found</div>';
+  if(memFilter==='appMembers'&&newList.length===0)html='<div class="empty">Koi app member nahi</div>';
   if(!html)html='<div class="empty">No members found</div>';
   el.innerHTML=html;
 }
@@ -2309,7 +2381,9 @@ on('mem-list','click',e=>{
   const em=e.target.closest('[data-edit-mem]');if(em)editMember(Number(em.dataset.editMem));
   const dm=e.target.closest('[data-del-mem]');if(dm&&confirm('Delete this member?')){MEMBERS=MEMBERS.filter(m=>m.id!==Number(dm.dataset.delMem));renderMembers();renderAdmin();showToast('Member deleted.');}
 });
-on('mem-list','dblclick',e=>{const w=e.target.closest('.avwrap');if(w)showMemberProfile(Number(w.dataset.memid));});
+on('mem-list','dblclick',function(e){const w=e.target.closest('.avwrap');if(w)showMemberProfile(w.dataset.memid);});
+// Double click on chat header avatar
+gel('cw-av')&&gel('cw-av').addEventListener('dblclick',function(){if(activeChatId)showMemberProfile(activeChatId);});
 gel('add-member-btn').addEventListener('click',()=>{gel('am-id').value='';['am-nm','am-city','am-role','am-ph'].forEach(id=>{const _e=gel(id);if(_e)_e.value='';});gel('am-admin').value='0';document.querySelector('#so-addmember h3').textContent='👤 Add Member';openSheet('addmember');});
 
 // EDIT MEMBER
@@ -2329,13 +2403,42 @@ gel('am-sub').addEventListener('click',()=>{
 
 // PROFILE MODAL
 function showMemberProfile(id){
-  const m=MEMBERS.find(x=>x.id===id);if(!m)return;
-  setAvi(gel('pm-av'),m.name);
-  gel('pm-name').textContent=m.name;
-  gel('pm-role').textContent=m.role+(m.isAdmin?' 🛡️':'');
-  gel('pm-info').innerHTML=`<div class="pm-field"><div class="lbl">City</div><div class="val">📍 ${m.city}</div></div><div class="pm-field"><div class="lbl">Status</div><div class="val">${m.online?'🟢 Online':'⚫ Offline'}</div></div><div class="pm-field"><div class="lbl">Role</div><div class="val">${m.role}</div></div><div class="pm-field"><div class="lbl">Phone</div><div class="val" style="direction:ltr;">${m.phone}</div></div>`;
-  gel('pm-chat-btn').onclick=()=>{gel('prof-modal').classList.remove('on');openChat(m.id,m.name,'direct');};
-  gel('pm-call-btn').onclick=()=>window.open('tel:'+m.phone);
+  const m=[...MEMBERS,...NEW_MEMBERS].find(function(x){return x.id===id||String(x.id)===String(id);});
+  if(!m)return;
+  const myPhone=String(CU&&CU.phone||'').replace(/[^0-9]/g,'');
+  const mPhone=String(m.phone||'').replace(/[^0-9]/g,'');
+  // Set avatar — use photo if available
+  var av=gel('pm-av');
+  if(m.photo){
+    av.innerHTML='<img src="'+m.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    av.style.background='transparent';
+  } else {
+    av.innerHTML='';
+    av.style.background='';
+    setAvi(av,m.name||'M');
+  }
+  gel('pm-name').textContent=m.name||'Member';
+  gel('pm-role').textContent=(m.role||'Member')+(m.isAdmin?' 🛡️':m.canApprove?' ✅':'');
+  // Build detailed info
+  var fields=[
+    {l:'Status',v:m.online?'🟢 Online':'⚫ Offline'},
+    {l:'Sheher',v:'📍 '+(m.city||'—')},
+  ];
+  if(m.address)fields.push({l:'Address',v:'🏠 '+m.address});
+  if(m.phone)fields.push({l:'Phone',v:'📞 '+m.phone});
+  gel('pm-info').innerHTML=fields.map(function(f){
+    return '<div class="pm-field"><div class="lbl">'+f.l+'</div><div class="val">'+f.v+'</div></div>';
+  }).join('');
+  // Hide chat/call for self
+  var chatBtn=gel('pm-chat-btn');
+  var callBtn=gel('pm-call-btn');
+  if(mPhone===myPhone){
+    if(chatBtn)chatBtn.style.display='none';
+    if(callBtn)callBtn.style.display='none';
+  } else {
+    if(chatBtn){chatBtn.style.display='';chatBtn.onclick=function(){gel('prof-modal').classList.remove('on');openChat(m.id,m.name,'direct');};}
+    if(callBtn){callBtn.style.display='';callBtn.onclick=function(){window.location.href='tel:'+m.phone;};}
+  }
   gel('prof-modal').classList.add('on');
 }
 gel('pm-close').addEventListener('click',()=>gel('prof-modal').classList.remove('on'));
@@ -2636,9 +2739,11 @@ gel('addrishta-btn').addEventListener('click',()=>{editCtx={type:'',id:null};['r
 gel('rishta-sub').addEventListener('click',()=>{
   const nm=gel('r-nm').value.trim();if(!nm){showToast('Name required');return;}
   const userPhone=gel('r-ph').value.trim()||phone||'';
-  const visEl=gel('r-vis');
-  const visibility=visEl?visEl.value:'members';
-  const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone,visibility:visibility,createdBy:String(CU&&CU.phone||'').replace(/[^0-9]/g,'')};
+  const visRadio=document.querySelector('input[name="r-vis"]:checked');
+  const visibility=visRadio?visRadio.value:'members';
+  const selectedMembersEls=document.querySelectorAll('.r-member-sel:checked');
+  const selectedMembers=Array.from(selectedMembersEls).map(function(el){return el.value;});
+  const obj={name:nm,type:gel('r-gen').value,age:Number(gel('r-age').value)||0,city:gel('r-city').value||'—',edu:gel('r-edu').value||'—',job:gel('r-job').value||'—',about:gel('r-about').value||'—',ph:userPhone,visibility:visibility,selectedMembers:selectedMembers,createdBy:String(CU&&CU.phone||'').replace(/[^0-9]/g,'')};
   if(editCtx.id){const i=RISHTA.findIndex(x=>x.id===editCtx.id);if(i>=0)RISHTA[i]={...RISHTA[i],...obj};}
   else RISHTA.push({id:Date.now(),...obj});
   try{localStorage.setItem('adnani_rishta',JSON.stringify(RISHTA));}catch(e){}
@@ -4204,6 +4309,13 @@ function _startApp(){
     try{u=JSON.parse(localStorage.getItem('usr'));}catch(e){}
 
     if(tok&&u&&u.name){
+      // Check if profile already complete — skip profile form entirely
+      var profileDone=false;
+      try{profileDone=localStorage.getItem('adnani_profile_done_'+String(u.phone||'').replace(/[^0-9]/g,''))==='1';}catch(e){}
+      if(!profileDone&&u.profile_complete){
+        try{localStorage.setItem('adnani_profile_done_'+String(u.phone||'').replace(/[^0-9]/g,''),'1');}catch(e){}
+        profileDone=true;
+      }
       // ALWAYS re-check phone for admin/superuser status
       // This fixes stale localStorage data issue
       var ph=String(u.phone||'').replace(/[^0-9]/g,'');
