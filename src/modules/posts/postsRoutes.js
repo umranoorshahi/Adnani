@@ -111,4 +111,40 @@ router.delete('/:id', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// PUT edit comment
+router.put('/:id/comment/:cmtId', async (req, res) => {
+  try {
+    const { phone, text } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Not found' });
+    const cmt = post.comments.id(req.params.cmtId) || post.comments.find(c => c.id === req.params.cmtId);
+    if (!cmt) return res.status(404).json({ error: 'Comment not found' });
+    if (cmt.phone !== String(phone).replace(/\D/g,'')) return res.status(403).json({ error: 'Not yours' });
+    cmt.text = text.slice(0, 500);
+    await post.save();
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE comment
+router.delete('/:id/comment/:cmtId', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const ADMIN_PHONES = (process.env.ADMIN_PHONES || '9415061063,9839060377,9918717288').split(',');
+    const cleanPhone = String(phone||'').replace(/\D/g,'');
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Not found' });
+    const cmtIdx = post.comments.findIndex(c => c.id === req.params.cmtId || String(c._id) === req.params.cmtId);
+    if (cmtIdx < 0) return res.status(404).json({ error: 'Comment not found' });
+    const cmt = post.comments[cmtIdx];
+    if (cmt.phone !== cleanPhone && !ADMIN_PHONES.includes(cleanPhone)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+    post.comments.splice(cmtIdx, 1);
+    await post.save();
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
